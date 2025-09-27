@@ -4,11 +4,17 @@ import uvicorn
 import shutil
 import os
 import base64
+import json
+
+import prompts
+import example_queries
+
+sample_query = example_queries.dermatological_example
 
 from openai import OpenAI
 
 OPENAI_KEY = "YOUR_API_KEY"
-model_type = "gpt-4o"
+model_type = "gpt-4o-mini"
 token_limit = 100
 image_prompt = "Analyze this image and describe the skin condition visible, focusing on redness. Don't supply any potential diagnosis, just the notable features observed."
 
@@ -32,7 +38,7 @@ def connect_to_openai():
 
 # ------------------------------------------------------------------------
 
-async def query_llm(messages: list[dict[str, any]], token_limit=token_limit):
+async def query_llm(messages: list[dict[str, any]], token_limit=token_limit, temperature=0.7):
 	response = None
 	try:
 		response = openai_client.chat.completions.create(
@@ -108,6 +114,29 @@ async def transcribe_audio(file: UploadFile = File(...)):
 	finally:
 		if os.path.exists(temp_file_path):
 			os.remove(temp_file_path)
+
+# ------------------------------------------------------------------------
+
+@app.get("/followup")
+async def followup_question_generator():
+	record = sample_query
+
+	prompt_1 = prompts.prompt_template_1.format(record=record)
+
+	messages= [
+		{"role": "user", "content": prompt_1}
+	]
+
+	response = await query_llm(messages, temperature=0.3)
+
+	# print(response.choices[0].message.content)
+
+	content1 = response.choices[0].message.content
+	data1 = json.loads(content1)
+
+	followup_questions = data1['followup_questions']
+
+	return followup_questions
 
 # ------------------------------------------------------------------------
 
