@@ -1,31 +1,46 @@
-// app/signupProvider.tsx
-
+// app/signin.tsx
 import React from 'react';
-import {Alert} from 'react-native';
-import { StyleSheet, TextInput, Pressable, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import {
+  StyleSheet,
+  TextInput,
+  Pressable,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Alert,
+} from 'react-native';
+
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text } from '@/components/Themed';
 import { Feather } from '@expo/vector-icons';
 
-export default function SignupProvider() {
+export default function Signin() {
   const router = useRouter();
 
   return (
     <SafeAreaView style={styles.safe}>
-      <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]} accessibilityRole="button" accessibilityLabel="Go back" hitSlop={8}>
+      <Pressable
+        onPress={() => router.back()}
+        style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
+        hitSlop={8}
+      >
         <Feather name="chevron-left" size={20} color="#111" />
         <Text style={styles.backText}>Back</Text>
       </Pressable>
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.container}
+      >
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <View style={styles.card}>
-            <Text style={styles.title}>Sign into Provider account</Text>
+            <Text style={styles.title}>Sign into your account</Text>
 
             <TextInput style={styles.input} placeholder="Email" placeholderTextColor="#999" keyboardType="email-address" autoCapitalize="none" />
             <TextInput style={styles.input} placeholder="Password" placeholderTextColor="#999" secureTextEntry />
-
               <Pressable style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
                 onPress={() => {
                   router.push('/homepage');
@@ -40,8 +55,8 @@ export default function SignupProvider() {
 }
 
 const styles = StyleSheet.create({
-  // same styles as SignupPatient — copy/paste or extract to shared file
   safe: { flex: 1, backgroundColor: '#F5F5F5'},
+  
   backButton: {
     position: 'absolute',
     top: 12,

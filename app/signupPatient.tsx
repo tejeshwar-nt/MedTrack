@@ -15,7 +15,6 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text } from '@/components/Themed';
 import { Feather } from '@expo/vector-icons';
-import { Color } from 'react-native/types_generated/Libraries/Animated/AnimatedExports';
 
 export default function SignupPatient() {
   const router = useRouter();
@@ -58,7 +57,7 @@ export default function SignupPatient() {
                   Already a Patient?
                 </Text>
                 
-                <Pressable onPress={() => router.push('/signinPatient')} style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }]}>
+                <Pressable onPress={() => router.push('/signin')} style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }]}>
                   <Text style={{ color: 'blue', fontWeight: '600' }}>Sign In</Text>
                 </Pressable>
               </ReactNView>

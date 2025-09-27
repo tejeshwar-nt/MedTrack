@@ -49,7 +49,7 @@ function RootLayoutNav() {
 
   return (
     <AuthProvider>
-    // Wrap the whole navigation tree with SafeAreaProvider
+    {/* Wrap the whole navigation tree with SafeAreaProvider */}
      <SafeAreaProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack>

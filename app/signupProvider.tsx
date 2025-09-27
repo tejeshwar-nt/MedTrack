@@ -40,7 +40,7 @@ export default function SignupProvider() {
                   Already a Provider?
                 </Text>
                 
-                <Pressable onPress={() => router.push('/signinProvider')} style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }]}>
+                <Pressable onPress={() => router.push('/signin')} style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }]}>
                   <Text style={{ color: 'blue', fontWeight: '600' }}>Sign In</Text>
                 </Pressable>
               </ReactNView>
