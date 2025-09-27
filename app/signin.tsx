@@ -80,8 +80,8 @@ export default function Signin() {
                 try {
                   setLoading(true);
                   await signIn(email.trim(), password);
-                  // Switch base route so it resolves to /homepage
-                  router.replace('/');
+                  // Go directly to homepage root
+                  router.replace('/homepage');
                 } catch (e: any) {
                   setError(e?.message ?? 'Failed to sign in');
                 } finally {

@@ -55,8 +55,8 @@ function RootLayoutNav() {
         <Stack screenOptions={{ gestureEnabled: false }}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="homepage" options={{ headerShown: false }} />
-          <Stack.Screen name="signin" options={{ headerShown: false }} />
+          <Stack.Screen name="homepage" options={{ headerShown: true }} />
+          <Stack.Screen name="signin" options={{ headerShown: true }} />
         </Stack>
       </ThemeProvider>
      </SafeAreaProvider>
