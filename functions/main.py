@@ -3,14 +3,36 @@ import uvicorn
 import shutil
 import os
 import base64
+from openai import OpenAI
 
-OPEN_AI_KEY_NAME = "Sample Key"
+OPENAI_KEY_NAME = "YOUR_API_KEY"
+model_type = "gpt-4o"
+token_limit = 100
+image_prompt = "Analyze this image and describe the skin condition visible, focusing on redness. Don't supply any potential diagnosis, just the notable features observed."
 
 app = FastAPI()
 
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
+
+@app.on_event("startup")
+def connect_to_openai():
+	global openai_client
+	openai_client = OpenAI(api_key=OPENAI_KEY_NAME)
+
+async def query_llm(messages: list[dict[str, any]], token_limit=token_limit):
+	response = None
+	try:
+		response = openai_client.chat.completions.create(
+			model=model_type,
+			messages=messages,
+			max_tokens=token_limit
+		)
+		print("API request successful.")
+	except Exception as e:
+		print(f"An error occurred during the API request: {e}")
+	return response
 
 def encode_image_to_base64(img_path: str):
 	try:
@@ -32,8 +54,25 @@ async def transcribe_image(file: UploadFile = File(...)):
 		# Encode the image
 		encoded = encode_image_to_base64(temp_file_path)
 
-		# Return the transcribed text
-		return {"transcription": encoded}
+		messages = [
+			{
+				"role": "user",
+				"content": [
+					{"type": "text", "text": image_prompt},
+					{
+						"type": "image_url",
+						"image_url": {
+							"url": f"data:image/jpeg;base64,{encoded}",
+						},
+					},
+				],
+			}
+		]
+
+		response = await query_llm(messages)
+
+		# Return the transcribed image
+		return {"transcription": response.choices[0].message.content}
 	finally:
 		if os.path.exists(temp_file_path):
 			os.remove(temp_file_path)
