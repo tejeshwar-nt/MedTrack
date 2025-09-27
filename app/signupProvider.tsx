@@ -1,6 +1,7 @@
 // app/signupProvider.tsx
 // copy SignupPatient and change title to "Create a Provider account" and add any provider-specific fields
 import React, { useState } from 'react';
+import {Alert, View as ReactNView} from 'react-native';
 import { StyleSheet, TextInput, Pressable, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -85,13 +86,53 @@ export default function SignupProvider() {
               <Text style={styles.errorText}>{error}</Text>
             ) : null}
 
-            <Pressable onPress={onSubmit} disabled={loading} style={({ pressed }) => [styles.button, (pressed || loading) && styles.buttonPressed]}>
-              <Text style={styles.buttonText}>{loading ? 'Signing up…' : 'Sign up'}</Text>
-            </Pressable>
+              {/* Sign up button (loading-aware, routes to /homepage on success) */}
+              <Pressable
+                disabled={loading}
+                style={({ pressed }) => [
+                  styles.button,
+                  (pressed || loading) && styles.buttonPressed,
+                ]}
+                onPress={async () => {
+                  if (loading) return;
+                  try {
+                    // Assume onSubmit throws on failure or returns a resolved promise on success
+                    await onSubmit?.();
+                    router.push('/homepage');
+                  } catch (err) {
+                    // optionally surface an error toast/snackbar here
+                    console.error(err);
+                  }
+                }}
+              >
+                <Text style={styles.buttonText}>
+                  {loading ? 'Signing up…' : 'Sign up'}
+                </Text>
+              </Pressable>
 
-            <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backLink, pressed && { opacity: 0.7 }]}>
-              <Text style={styles.backLinkText}>Back</Text>
-            </Pressable>
+              {/* Sign-in prompt (kept from main to avoid nesting Pressable inside Text) */}
+              <ReactNView style={{ alignItems: 'center', marginTop: 10 }}>
+                <Text style={{ color: 'black', marginBottom: 4 }}>
+                  Already a Patient?
+                </Text>
+
+                <Pressable
+                  onPress={() => router.push('/signin')}
+                  style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }]}
+                >
+                  <Text style={{ color: 'blue', fontWeight: '600' }}>Sign In</Text>
+                </Pressable>
+              </ReactNView>
+
+              <ReactNView style={{ alignItems: 'center', marginTop: 10 }}> 
+                <Text style={{ color: 'black', marginBottom: 4 }}>
+                  Already a Provider?
+                </Text>
+                
+                <Pressable onPress={() => router.push('/signin')} style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }]}>
+                  <Text style={{ color: 'blue', fontWeight: '600' }}>Sign In</Text>
+                </Pressable>
+              </ReactNView>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
