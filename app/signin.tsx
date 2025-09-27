@@ -11,13 +11,14 @@ import {
 } from 'react-native';
 
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import { View, Text } from '@/components/Themed';
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '../hooks/useAuth';
 
 export default function Signin() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,10 +26,10 @@ export default function Signin() {
   const [error, setError] = useState<string | null>(null);
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <Pressable
         onPress={() => router.back()}
-        style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}
+        style={({ pressed }) => [styles.backButton, {top: insets.top + 8}, pressed && styles.backButtonPressed]}
         accessibilityRole="button"
         accessibilityLabel="Go back"
         hitSlop={8}
