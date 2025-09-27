@@ -1,11 +1,12 @@
 import React from 'react';
 import { StyleSheet, Pressable, View as RNView, useWindowDimensions, Alert } from 'react-native';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text, View } from '@/components/Themed';
 import { useAuth } from '../../hooks/useAuth';
 
 export default function Home() {
+  const router = useRouter();
   const { width } = useWindowDimensions();
   const isNarrow = width < 420;
   const { user, profile, signOut } = useAuth();
@@ -48,7 +49,7 @@ export default function Home() {
               onPress={() => {
                 Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
                   { text: 'Cancel', style: 'cancel' },
-                  { text: 'Sign Out', style: 'destructive', onPress: signOut }
+                  { text: 'Sign Out', style: 'destructive', onPress: async () => { await signOut(); router.replace('/'); } }
                 ]);
               }}
             >

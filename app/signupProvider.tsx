@@ -28,6 +28,7 @@ export default function SignupProvider() {
     try {
       setLoading(true);
       await signUp(email.trim(), password, name.trim());
+      // Fire and forget profile creation; base route will switch on auth
       createProviderProfile(name.trim(), license.trim() || undefined).catch(() => {});
       router.replace('/');
     } catch (e: any) {
@@ -96,11 +97,9 @@ export default function SignupProvider() {
                 onPress={async () => {
                   if (loading) return;
                   try {
-                    // Assume onSubmit throws on failure or returns a resolved promise on success
+                    // Perform signup; on success, onSubmit will replace to root
                     await onSubmit?.();
-                    router.push('/homepage');
                   } catch (err) {
-                    // optionally surface an error toast/snackbar here
                     console.error(err);
                   }
                 }}
@@ -111,18 +110,6 @@ export default function SignupProvider() {
               </Pressable>
 
               {/* Sign-in prompt (kept from main to avoid nesting Pressable inside Text) */}
-              <ReactNView style={{ alignItems: 'center', marginTop: 10 }}>
-                <Text style={{ color: 'black', marginBottom: 4 }}>
-                  Already a Patient?
-                </Text>
-
-                <Pressable
-                  onPress={() => router.push('/signin')}
-                  style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }]}
-                >
-                  <Text style={{ color: 'blue', fontWeight: '600' }}>Sign In</Text>
-                </Pressable>
-              </ReactNView>
 
               <ReactNView style={{ alignItems: 'center', marginTop: 10 }}> 
                 <Text style={{ color: 'black', marginBottom: 4 }}>

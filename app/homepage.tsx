@@ -1,0 +1,204 @@
+import React from 'react';
+import { StyleSheet, Pressable, View as RNView, useWindowDimensions, Alert } from 'react-native';
+import { Link, useRouter, Stack } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Text, View } from '@/components/Themed';
+import { useAuth } from '../hooks/useAuth';
+
+export default function HomePage() {
+  const router = useRouter();
+  const { width } = useWindowDimensions();
+  const isNarrow = width < 420;
+  const { user, profile, signOut } = useAuth();
+
+  if (user) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.screen}>
+          <View style={styles.card}>
+            <Text style={styles.logo}>MedTrak</Text>
+            <Text style={styles.welcome}>
+              Welcome back, {profile?.displayName || user.displayName || 'User'}!
+            </Text>
+            {profile ? (
+              <>
+                <Text style={styles.roleText}>
+                  Role: {profile.role === 'patient' ? 'Patient' : 'Healthcare Provider'}
+                </Text>
+                {profile.role === 'provider' && profile.license && (
+                  <Text style={styles.licenseText}>License: {profile.license}</Text>
+                )}
+                <Text style={styles.emailText}>Email: {profile.email}</Text>
+              </>
+            ) : (
+              <Text style={styles.roleText}>Loading profile...</Text>
+            )}
+            <Pressable
+              style={({ pressed }) => [styles.signOutButton, pressed && styles.btnPressed]}
+              onPress={() => {
+                Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Sign Out', style: 'destructive', onPress: async () => { await signOut(); router.replace('/'); } },
+                ]);
+              }}
+            >
+              <Text style={styles.signOutText}>Sign Out</Text>
+            </Pressable>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <View style={styles.screen}>
+        <View style={styles.card}>
+          <Text style={styles.logo}>🔎 MedTrak</Text>
+          <Text style={styles.question}>Are you a patient or a provider?</Text>
+          <RNView style={[styles.buttonRow]}>
+            <Link href="/signupPatient" asChild>
+              <Pressable style={({ pressed }) => [styles.primaryBtn, pressed && styles.btnPressed]}>
+                <Text style={styles.primaryTxt}>I'm a Patient</Text>
+              </Pressable>
+            </Link>
+            <Link href="/signupProvider" asChild>
+              <Pressable style={({ pressed }) => [styles.outlineBtn, pressed && styles.btnPressed]}>
+                <Text style={styles.outlineTxt}>I'm a Provider</Text>
+              </Pressable>
+            </Link>
+          </RNView>
+          <Text style={styles.small}>By continuing you agree to our Terms & Privacy.</Text>
+        </View>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: '#F5F5F5' },
+  screen: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    backgroundColor: '#F5F5F5',
+  },
+  card: {
+    width: '100%',
+    maxWidth: 520,
+    height: '62%',
+    minHeight: 420,
+    paddingHorizontal: 28,
+    paddingVertical: 36,
+    borderRadius: 14,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 22,
+    elevation: 8,
+  },
+  logo: {
+    fontSize: 36,
+    fontWeight: '800',
+    marginBottom: 12,
+    textAlign: 'center',
+    color: '#0b0b0b',
+  },
+  question: {
+    fontSize: 18,
+    color: '#333',
+    marginBottom: 18,
+    textAlign: 'center',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    width: '100%',
+    marginTop: 20,
+    marginBottom: 12,
+    justifyContent: 'space-around',
+  },
+  buttonRowStack: {
+    flexDirection: 'column',
+  },
+  primaryBtn: {
+    flex: 1,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 1,
+    backgroundColor: '#0b84ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 6,
+  },
+  outlineBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#0b84ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+  },
+  buttonRowStack_primary: {
+    marginRight: 0,
+    marginBottom: 12,
+  },
+  primaryTxt: {
+    color: '#0b84ff',
+    fontWeight: '700',
+  },
+  outlineTxt: {
+    color: '#0b84ff',
+    fontWeight: '700',
+  },
+  btnPressed: { opacity: 0.88 },
+  small: {
+    marginTop: 45,
+    color: '#666',
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  welcome: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#111',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  roleText: {
+    fontSize: 18,
+    color: '#555',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  licenseText: {
+    fontSize: 16,
+    color: '#777',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emailText: {
+    fontSize: 16,
+    color: '#777',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  signOutButton: {
+    backgroundColor: '#ff3b30',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  signOutText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+});
+

@@ -36,6 +36,7 @@ export default function SignupPatient() {
       setLoading(true);
       await signUp(email.trim(), password, name.trim());
       await createPatientProfile(name.trim());
+      // Only switch base route; avoid stacking another screen
       router.replace('/');
     } catch (e: any) {
       setError(e?.message ?? 'Failed to sign up');
@@ -104,11 +105,9 @@ export default function SignupPatient() {
                 onPress={async () => {
                   if (loading) return;
                   try {
-                    // Assume onSubmit throws on failure or returns a resolved promise on success
+                    // Perform signup; on success, onSubmit will replace to root
                     await onSubmit?.();
-                    router.push('/homepage');
                   } catch (err) {
-                    // optionally surface an error toast/snackbar here
                     console.error(err);
                   }
                 }}
