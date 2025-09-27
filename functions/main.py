@@ -3,6 +3,7 @@ import whisper
 import uvicorn
 import shutil
 import os
+import base64
 
 from openai import OpenAI
 
