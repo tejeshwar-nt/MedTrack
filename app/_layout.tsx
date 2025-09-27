@@ -6,6 +6,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
+import { AuthProvider } from "../hooks/useAuth";
 
 import { SafeAreaProvider } from 'react-native-safe-area-context'; // <- added
 import { useColorScheme } from '@/components/useColorScheme';
@@ -47,14 +48,16 @@ function RootLayoutNav() {
   const colorScheme = useColorScheme();
 
   return (
+    <AuthProvider>
     // Wrap the whole navigation tree with SafeAreaProvider
-    <SafeAreaProvider>
+     <SafeAreaProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
         </Stack>
       </ThemeProvider>
-    </SafeAreaProvider>
+     </SafeAreaProvider>
+    </AuthProvider>
   );
 }
