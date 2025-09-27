@@ -14,5 +14,8 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-export const db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
+// Firestore: prefer long polling to avoid restricted networks issues
+export const db = initializeFirestore(app, {
+  experimentalAutoDetectLongPolling: true
+});
 export const auth = getAuth(app);

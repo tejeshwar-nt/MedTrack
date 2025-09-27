@@ -1,13 +1,66 @@
-// app/index.tsx
 import React from 'react';
-import { StyleSheet, Pressable, View as RNView, useWindowDimensions } from 'react-native';
+import { StyleSheet, Pressable, View as RNView, useWindowDimensions, Alert } from 'react-native';
 import { Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Text, View } from '@/components/Themed'; // keep your themed components
+import { Text, View } from '@/components/Themed';
+import { useAuth } from '../../hooks/useAuth';
 
 export default function Home() {
   const { width } = useWindowDimensions();
   const isNarrow = width < 420;
+  const { user, profile, signOut } = useAuth();
+
+  // Show home if user is logged in
+  if (user) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.screen}>
+          <View style={styles.card}>
+            <Text style={styles.logo}>MedTrak</Text>
+            <Text style={styles.welcome}>
+              Welcome back, {profile?.displayName || user.displayName || 'User'}!
+            </Text>
+            
+            {profile ? (
+              <>
+                <Text style={styles.roleText}>
+                  Role: {profile.role === 'patient' ? 'Patient' : 'Healthcare Provider'}
+                </Text>
+                
+                {profile.role === 'provider' && profile.license && (
+                  <Text style={styles.licenseText}>
+                    License: {profile.license}
+                  </Text>
+                )}
+
+                <Text style={styles.emailText}>
+                  Email: {profile.email}
+                </Text>
+              </>
+            ) : (
+              <Text style={styles.roleText}>
+                Loading profile...
+              </Text>
+            )}
+
+            <Pressable 
+              style={({ pressed }) => [styles.signOutButton, pressed && styles.btnPressed]}
+              onPress={() => {
+                Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Sign Out', style: 'destructive', onPress: signOut }
+                ]);
+              }}
+            >
+              <Text style={styles.signOutText}>Sign Out</Text>
+            </Pressable>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Show welcome screen if not logged in
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -148,5 +201,44 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 12,
     textAlign: 'center',
+  },
+
+  // New styles for authenticated home
+  welcome: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#111',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  roleText: {
+    fontSize: 18,
+    color: '#555',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  licenseText: {
+    fontSize: 16,
+    color: '#777',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emailText: {
+    fontSize: 16,
+    color: '#777',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  signOutButton: {
+    backgroundColor: '#ff3b30',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  signOutText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 16,
   },
 });
