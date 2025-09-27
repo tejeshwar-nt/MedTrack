@@ -1,5 +1,5 @@
 // app/signupPatient.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   TextInput,
@@ -15,9 +15,35 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text } from '@/components/Themed';
 import { Feather } from '@expo/vector-icons';
+import { useAuth } from '../hooks/useAuth';
 
 export default function SignupPatient() {
   const router = useRouter();
+  const { signUp, createPatientProfile } = useAuth();
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const onSubmit = async () => {
+    setError(null);
+    if (!name.trim() || !email.trim() || !password) {
+      setError('Please fill out all fields');
+      return;
+    }
+    try {
+      setLoading(true);
+      await signUp(email.trim(), password, name.trim());
+      await createPatientProfile(name.trim());
+      // Only switch base route; avoid stacking another screen
+      router.replace('/');
+    } catch (e: any) {
+      setError(e?.message ?? 'Failed to sign up');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -40,24 +66,67 @@ export default function SignupPatient() {
           <View style={styles.card}>
             <Text style={styles.title}>Create a Patient account</Text>
 
-            <TextInput style={styles.input} placeholder="Full name" placeholderTextColor="#999" />
-            <TextInput style={styles.input} placeholder="Email" placeholderTextColor="#999" keyboardType="email-address" autoCapitalize="none" />
-            <TextInput style={styles.input} placeholder="Password" placeholderTextColor="#999" secureTextEntry />
+            <TextInput
+              style={styles.input}
+              placeholder="Full name"
+              placeholderTextColor="#999"
+              value={name}
+              onChangeText={setName}
+              autoCapitalize="words"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor="#999"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor="#999"
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+            />
 
-              <Pressable style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
-                onPress={() => {
-                  router.push('/homepage');
-                }}>
-                  <Text style={styles.buttonText}>Sign up</Text>
+            {error ? (
+              <Text style={styles.errorText}>{error}</Text>
+            ) : null}
+              {/* Sign up button (loading-aware, routes to /homepage on success) */}
+              <Pressable
+                disabled={loading}
+                style={({ pressed }) => [
+                  styles.button,
+                  (pressed || loading) && styles.buttonPressed,
+                ]}
+                onPress={async () => {
+                  if (loading) return;
+                  try {
+                    // Perform signup; on success, onSubmit will replace to root
+                    await onSubmit?.();
+                  } catch (err) {
+                    console.error(err);
+                  }
+                }}
+              >
+                <Text style={styles.buttonText}>
+                  {loading ? 'Signing up…' : 'Sign up'}
+                </Text>
               </Pressable>
-              
-              {/* This is the ending solution I had to use because directly embedding a pressable within a text block causes stylistic errors*/}
-              <ReactNView style={{ alignItems: 'center', marginTop: 10 }}> 
+
+              {/* Sign-in prompt (kept from main to avoid nesting Pressable inside Text) */}
+              <ReactNView style={{ alignItems: 'center', marginTop: 10 }}>
                 <Text style={{ color: 'black', marginBottom: 4 }}>
                   Already a Patient?
                 </Text>
-                
-                <Pressable onPress={() => router.push('/signin')} style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }]}>
+
+                <Pressable
+                  onPress={() => router.push('/signin')}
+                  style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }]}
+                >
                   <Text style={{ color: 'blue', fontWeight: '600' }}>Sign In</Text>
                 </Pressable>
               </ReactNView>
@@ -106,6 +175,8 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: '700', marginBottom: 14, textAlign: 'center', color: '#111' },
 
   input: { borderWidth: 1, borderColor: '#e6e9ee', paddingVertical: 12, paddingHorizontal: 14, borderRadius: 10, marginBottom: 12, width: '100%', backgroundColor: 'transparent' },
+
+  errorText: { color: 'red', marginBottom: 8, textAlign: 'center' },
 
   button: { marginTop: 6, paddingVertical: 14, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0b84ff' },
   buttonPressed: { opacity: 0.9 },

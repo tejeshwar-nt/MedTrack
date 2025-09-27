@@ -16,7 +16,7 @@ export {
 } from 'expo-router';
 
 export const unstable_settings = {
-  initialRouteName: '(tabs)',
+  initialRouteName: 'homepage',
 };
 
 SplashScreen.preventAutoHideAsync();
@@ -52,9 +52,11 @@ function RootLayoutNav() {
     {/* Wrap the whole navigation tree with SafeAreaProvider */}
      <SafeAreaProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
+        <Stack screenOptions={{ gestureEnabled: false }}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="homepage" options={{ headerShown: false }} />
+          <Stack.Screen name="signin" options={{ headerShown: false }} />
         </Stack>
       </ThemeProvider>
      </SafeAreaProvider>

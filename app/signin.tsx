@@ -1,5 +1,5 @@
 // app/signin.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   TextInput,
@@ -14,9 +14,15 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text } from '@/components/Themed';
 import { Feather } from '@expo/vector-icons';
+import { useAuth } from '../hooks/useAuth';
 
 export default function Signin() {
   const router = useRouter();
+  const { signIn } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -39,14 +45,52 @@ export default function Signin() {
           <View style={styles.card}>
             <Text style={styles.title}>Sign into your account</Text>
 
-            <TextInput style={styles.input} placeholder="Email" placeholderTextColor="#999" keyboardType="email-address" autoCapitalize="none" />
-            <TextInput style={styles.input} placeholder="Password" placeholderTextColor="#999" secureTextEntry />
-              <Pressable style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
-                onPress={() => {
-                  router.push('/homepage');
-                }}>
-                  <Text style={styles.buttonText}>Sign In</Text>
-              </Pressable>
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor="#999"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor="#999"
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+            />
+
+            {error ? (
+              <Text style={{ color: 'red', marginBottom: 8, textAlign: 'center' }}>{error}</Text>
+            ) : null}
+
+            <Pressable
+              style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
+              disabled={loading}
+              onPress={async () => {
+                if (loading) return;
+                setError(null);
+                if (!email.trim() || !password) {
+                  setError('Please enter email and password');
+                  return;
+                }
+                try {
+                  setLoading(true);
+                  await signIn(email.trim(), password);
+                  // Switch base route so it resolves to /homepage
+                  router.replace('/');
+                } catch (e: any) {
+                  setError(e?.message ?? 'Failed to sign in');
+                } finally {
+                  setLoading(false);
+                }
+              }}
+            >
+              <Text style={styles.buttonText}>{loading ? 'Signing in…' : 'Sign In'}</Text>
+            </Pressable>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
