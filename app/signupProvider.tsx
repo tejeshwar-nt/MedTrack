@@ -1,6 +1,7 @@
 // app/signupProvider.tsx
-// copy SignupPatient and change title to "Create a Provider account" and add any provider-specific fields
+
 import React from 'react';
+import {Alert, View as ReactNView} from 'react-native';
 import { StyleSheet, TextInput, Pressable, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -27,13 +28,22 @@ export default function SignupProvider() {
             <TextInput style={styles.input} placeholder="Password" placeholderTextColor="#999" secureTextEntry />
             <TextInput style={styles.input} placeholder="License / NPI (optional)" placeholderTextColor="#999" />
 
-            <Pressable style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}>
-              <Text style={styles.buttonText}>Sign up</Text>
-            </Pressable>
+              <Pressable style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
+                onPress={() => {
+                  router.push('/homepage');
+                }}>
+                  <Text style={styles.buttonText}>Sign up</Text>
+              </Pressable>
 
-            <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backLink, pressed && { opacity: 0.7 }]}>
-              <Text style={styles.backLinkText}>Back</Text>
-            </Pressable>
+              <ReactNView style={{ alignItems: 'center', marginTop: 10 }}> 
+                <Text style={{ color: 'black', marginBottom: 4 }}>
+                  Already a Provider?
+                </Text>
+                
+                <Pressable onPress={() => router.push('/signin')} style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }]}>
+                  <Text style={{ color: 'blue', fontWeight: '600' }}>Sign In</Text>
+                </Pressable>
+              </ReactNView>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

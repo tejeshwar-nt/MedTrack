@@ -13,7 +13,7 @@ export default function Home() {
     <SafeAreaView style={styles.safe}>
       <View style={styles.screen}>
         <View style={styles.card}>
-          <Text style={styles.logo}>MedTrak</Text>
+          <Text style={styles.logo}>🔎 MedTrak</Text>
 
           <Text style={styles.question}>Are you a patient or a provider?</Text>
 
@@ -119,7 +119,6 @@ const styles = StyleSheet.create({
     borderColor: '#0b84ff',
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 8,
     backgroundColor: 'transparent',
   },
 
