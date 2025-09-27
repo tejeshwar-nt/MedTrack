@@ -2,3 +2,4 @@ fastapi==0.117.1
 openai==1.109.1
 python-dotenv==1.1.1
 uvicorn==0.37.0
+python-multipart==0.0.10

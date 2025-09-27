@@ -5,7 +5,7 @@ import os
 import base64
 from openai import OpenAI
 
-OPENAI_KEY_NAME = "YOUR_API_KEY"
+OPENAI_KEY = "YOUR_API_KEY"
 model_type = "gpt-4o"
 token_limit = 100
 image_prompt = "Analyze this image and describe the skin condition visible, focusing on redness. Don't supply any potential diagnosis, just the notable features observed."
@@ -19,7 +19,7 @@ def read_root():
 @app.on_event("startup")
 def connect_to_openai():
 	global openai_client
-	openai_client = OpenAI(api_key=OPENAI_KEY_NAME)
+	openai_client = OpenAI(api_key=OPENAI_KEY)
 
 async def query_llm(messages: list[dict[str, any]], token_limit=token_limit):
 	response = None
