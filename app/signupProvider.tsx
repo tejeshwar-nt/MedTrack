@@ -29,9 +29,9 @@ export default function SignupProvider() {
     try {
       setLoading(true);
       await signUp(email.trim(), password, name.trim());
-      // Fire and forget profile creation; base route will switch on auth
+      // Fire and forget profile creation; then go to homepage root
       createProviderProfile(name.trim(), license.trim() || undefined).catch(() => {});
-      router.replace('/');
+      router.replace('/homepage');
     } catch (e: any) {
       setError(e?.message ?? 'Failed to sign up');
     } finally {

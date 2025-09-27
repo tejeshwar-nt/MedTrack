@@ -37,8 +37,8 @@ export default function SignupPatient() {
       setLoading(true);
       await signUp(email.trim(), password, name.trim());
       await createPatientProfile(name.trim());
-      // Only switch base route; avoid stacking another screen
-      router.replace('/');
+      // Go directly to homepage root
+      router.replace('/homepage');
     } catch (e: any) {
       setError(e?.message ?? 'Failed to sign up');
     } finally {
