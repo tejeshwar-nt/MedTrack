@@ -14,6 +14,8 @@ image_prompt = "Analyze this image and describe the skin condition visible, focu
 
 app = FastAPI()
 
+# ------------------------------------------------------------------------
+
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
@@ -28,6 +30,8 @@ def connect_to_openai():
 	global openai_client
 	openai_client = OpenAI(api_key=OPENAI_KEY)
 
+# ------------------------------------------------------------------------
+
 async def query_llm(messages: list[dict[str, any]], token_limit=token_limit):
 	response = None
 	try:
@@ -40,6 +44,8 @@ async def query_llm(messages: list[dict[str, any]], token_limit=token_limit):
 	except Exception as e:
 		print(f"An error occurred during the API request: {e}")
 	return response
+
+# ------------------------------------------------------------------------
 
 def encode_image_to_base64(img_path: str):
 	try:
@@ -84,6 +90,8 @@ async def transcribe_image(file: UploadFile = File(...)):
 		if os.path.exists(temp_file_path):
 			os.remove(temp_file_path)
 
+# ------------------------------------------------------------------------
+
 @app.post("/transcribe_audio")
 async def transcribe_audio(file: UploadFile = File(...)):
 	temp_file_path = f"temp_{file.filename}"
@@ -100,6 +108,8 @@ async def transcribe_audio(file: UploadFile = File(...)):
 	finally:
 		if os.path.exists(temp_file_path):
 			os.remove(temp_file_path)
+
+# ------------------------------------------------------------------------
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))  # Get port from environment or use 8080 as default
