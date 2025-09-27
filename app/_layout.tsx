@@ -54,9 +54,12 @@ function RootLayoutNav() {
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack screenOptions={{ gestureEnabled: false }}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
           <Stack.Screen name="homepage" options={{ headerShown: false }} />
           <Stack.Screen name="signin" options={{ headerShown: false }} />
+          <Stack.Screen name="signupPatient" options={{ headerShown: false }} />
+          <Stack.Screen name="signupProvider" options={{ headerShown: false }} />
         </Stack>
       </ThemeProvider>
      </SafeAreaProvider>
