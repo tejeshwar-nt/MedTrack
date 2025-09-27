@@ -55,6 +55,7 @@ msgpack==1.1.1
 networkx==3.5
 numba==0.62.0
 numpy==2.3.3
+openai==1.109.1
 openai-whisper==20250625
 packaging==25.0
 proto-plus==1.26.1
