@@ -1,4 +1,4 @@
-// app/signupPatient.tsx
+// app/signinPatient.tsx
 import React from 'react';
 import {
   StyleSheet,
@@ -8,16 +8,14 @@ import {
   Platform,
   ScrollView,
   Alert,
-  View as ReactNView
 } from 'react-native';
 
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text } from '@/components/Themed';
 import { Feather } from '@expo/vector-icons';
-import { Color } from 'react-native/types_generated/Libraries/Animated/AnimatedExports';
 
-export default function SignupPatient() {
+export default function SigninPatient() {
   const router = useRouter();
 
   return (
@@ -39,29 +37,16 @@ export default function SignupPatient() {
       >
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <View style={styles.card}>
-            <Text style={styles.title}>Create a Patient account</Text>
+            <Text style={styles.title}>Sign into Patient account</Text>
 
-            <TextInput style={styles.input} placeholder="Full name" placeholderTextColor="#999" />
             <TextInput style={styles.input} placeholder="Email" placeholderTextColor="#999" keyboardType="email-address" autoCapitalize="none" />
             <TextInput style={styles.input} placeholder="Password" placeholderTextColor="#999" secureTextEntry />
-
               <Pressable style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
                 onPress={() => {
                   router.push('/homepage');
                 }}>
-                  <Text style={styles.buttonText}>Sign up</Text>
+                  <Text style={styles.buttonText}>Sign In</Text>
               </Pressable>
-              
-              {/* This is the ending solution I had to use because directly embedding a pressable within a text block causes stylistic errors*/}
-              <ReactNView style={{ alignItems: 'center', marginTop: 10 }}> 
-                <Text style={{ color: 'black', marginBottom: 4 }}>
-                  Already a Patient?
-                </Text>
-                
-                <Pressable onPress={() => router.push('/signinPatient')} style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }]}>
-                  <Text style={{ color: 'blue', fontWeight: '600' }}>Sign In</Text>
-                </Pressable>
-              </ReactNView>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

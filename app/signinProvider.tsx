@@ -1,47 +1,28 @@
-// app/signupPatient.tsx
-import React from 'react';
-import {
-  StyleSheet,
-  TextInput,
-  Pressable,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Alert,
-  View as ReactNView
-} from 'react-native';
+// app/signupProvider.tsx
 
+import React from 'react';
+import {Alert} from 'react-native';
+import { StyleSheet, TextInput, Pressable, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text } from '@/components/Themed';
 import { Feather } from '@expo/vector-icons';
-import { Color } from 'react-native/types_generated/Libraries/Animated/AnimatedExports';
 
-export default function SignupPatient() {
+export default function SignupProvider() {
   const router = useRouter();
 
   return (
     <SafeAreaView style={styles.safe}>
-      <Pressable
-        onPress={() => router.back()}
-        style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}
-        accessibilityRole="button"
-        accessibilityLabel="Go back"
-        hitSlop={8}
-      >
+      <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]} accessibilityRole="button" accessibilityLabel="Go back" hitSlop={8}>
         <Feather name="chevron-left" size={20} color="#111" />
         <Text style={styles.backText}>Back</Text>
       </Pressable>
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.container}
-      >
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <View style={styles.card}>
-            <Text style={styles.title}>Create a Patient account</Text>
+            <Text style={styles.title}>Sign into Provider account</Text>
 
-            <TextInput style={styles.input} placeholder="Full name" placeholderTextColor="#999" />
             <TextInput style={styles.input} placeholder="Email" placeholderTextColor="#999" keyboardType="email-address" autoCapitalize="none" />
             <TextInput style={styles.input} placeholder="Password" placeholderTextColor="#999" secureTextEntry />
 
@@ -49,19 +30,8 @@ export default function SignupPatient() {
                 onPress={() => {
                   router.push('/homepage');
                 }}>
-                  <Text style={styles.buttonText}>Sign up</Text>
+                  <Text style={styles.buttonText}>Sign In</Text>
               </Pressable>
-              
-              {/* This is the ending solution I had to use because directly embedding a pressable within a text block causes stylistic errors*/}
-              <ReactNView style={{ alignItems: 'center', marginTop: 10 }}> 
-                <Text style={{ color: 'black', marginBottom: 4 }}>
-                  Already a Patient?
-                </Text>
-                
-                <Pressable onPress={() => router.push('/signinPatient')} style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }]}>
-                  <Text style={{ color: 'blue', fontWeight: '600' }}>Sign In</Text>
-                </Pressable>
-              </ReactNView>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -70,8 +40,8 @@ export default function SignupPatient() {
 }
 
 const styles = StyleSheet.create({
+  // same styles as SignupPatient — copy/paste or extract to shared file
   safe: { flex: 1, backgroundColor: '#F5F5F5'},
-  
   backButton: {
     position: 'absolute',
     top: 12,
