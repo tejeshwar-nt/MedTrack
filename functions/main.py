@@ -1,4 +1,5 @@
 from fastapi import FastAPI, File, UploadFile
+from firebase_functions import https_fn
 import whisper
 import shutil
 import os
@@ -30,3 +31,9 @@ async def transcribe_audio(file: UploadFile = File(...)):
 	finally:
 		if os.path.exists(temp_file_path):
 			os.remove(temp_file_path)
+
+# This is the key part: Expose your FastAPI app as a Firebase Cloud Function
+@https_fn.on_request()
+def my_api(req: https_fn.Request) -> https_fn.Response:
+    # This line routes the incoming Firebase request to your FastAPI app
+    return app(req.environ, lambda status, headers: None)

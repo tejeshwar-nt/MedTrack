@@ -71,3 +71,6 @@ fastlane/test_output
 # --- Optional: platform config secrets (uncomment if you don't commit these) ---
 # android/app/google-services.json
 # ios/GoogleService-Info.plist
+
+# --- Python testing environments ---
+__pycache__/
