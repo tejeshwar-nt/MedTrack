@@ -4,13 +4,14 @@ import React, { useState } from 'react';
 import {Alert, View as ReactNView} from 'react-native';
 import { StyleSheet, TextInput, Pressable, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import { View, Text } from '@/components/Themed';
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '../hooks/useAuth';
 
 export default function SignupProvider() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { signUp, createProviderProfile } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -39,8 +40,14 @@ export default function SignupProvider() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]} accessibilityRole="button" accessibilityLabel="Go back" hitSlop={8}>
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+      <Pressable
+        onPress={() => router.back()}
+        style={({ pressed }) => [styles.backButton, {top: insets.top + 8}, pressed && styles.backButtonPressed]}
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
+        hitSlop={8}
+      >
         <Feather name="chevron-left" size={20} color="#111" />
         <Text style={styles.backText}>Back</Text>
       </Pressable>
