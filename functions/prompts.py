@@ -1,4 +1,4 @@
-prompt_template_1 = """
+followup_questions_prompt = """
 You are a medical assistant. 
 
 Use the following information:
@@ -27,51 +27,37 @@ Based on patient record, provide a reasonable answer for follow-up questions.
 
 Format your answer as:
 {{
-  <question1>: <answer1>,
-  <question2>: <answer2>, 
-  ...
+  "followup_answers":[{{"question": <question1>,"answer": <answer1>}}, ...]
 }}
 
 """
 
+general_summary_prompt = """
+You are a medical assistant. Analyze the patient’s records and follow-up answers carefully.
 
-prompt_template_2 = """
-You are a medical assistant. 
-
-Use the following information:
-- Patient record: {record}
+Input:
+- Patient records: {records}
+- Recorded dates: {dates}
 - Follow-up answers: {followup_answers}
 
-Your tasks are:
-1. Based on patient record and follow-up answers, summarize the patient’s case in short words (key symptoms, onset, severity, body parts/systems).
-2. Flag the importance/intensity of symptoms (HIGH / MEDIUM / LOW) and score daily intensity from 0 to 100 with a brief reasoning.
-3. Suggest 2–3 possible conditions. 
-4. Indicate if the patient should see a doctor immediately ("Yes" or "No")
-5. Find the significant indicators (with exact words from the patient record) that leads to all the reasoning. This should be a short phrase.
-
-Format your answer as following example:
-Summary:
-- Main symptoms: Symptom 1, Symptom 2, ...
-- Onset: N Days
-- Severity: (Severe/Moderate/Mild), (Worsening/Improving/Intermittent)
-- Relevant: Repository
-
-Importance:
-- Symptom 1 → (HIGH / MEDIUM / LOW), [day1_intensity_score, day2_intensity_score, ...]
-- Symptom 2 → (HIGH / MEDIUM / LOW), [day1_intensity_score, day2_intensity_score, ...]
-- Symptom 3 → (HIGH / MEDIUM / LOW), [day1_intensity_score, day2_intensity_score, ...]
-- Symptom 4 → (HIGH / MEDIUM / LOW), [day1_intensity_score, day2_intensity_score, ...]
-Possible Conditions:
-
-Urgent Recommendations: (Yes/No)
-
-Significant Indicators:
+Your tasks:
+1. Summarize the patient’s case in concise terms:
+   - Key symptoms in one or two words
+   - Onset (number of days)
+   - Overall severity (mild, moderate, severe; note if worsening, improving, intermittent)
+   - Relevant body parts or systems
+2. Flag the importance of each symptom as HIGH / MEDIUM / LOW.
+3. Provide a symptom intensity score (0–100) for each symptom with brief reasoning. 
+    - Ensure that the score list is in the same length with the records.
+    - 0 means it doesn't need immediate care, 100 means it needs urgent care.
+4. Suggest 2–3 possible conditions consistent with the symptoms.
+5. Indicate whether the patient should see a doctor immediately (Yes / No).
+6. Identify significant indicators: exact words or phrases from the patient record that support your reasoning (keep them short).
 
 Format your answer as:
 {{
     "summary": {{
         "symptom": [Symptom 1, Symptom 2, ...],
-        "onset": "N days",
         "severity": "(Severe/Moderate/Mild), (Worsening/Improving/Intermittent)",
         "relevant": Repository/Dermatologistic/...
         }},
@@ -90,6 +76,5 @@ Format your answer as:
     "urgent": (Yes/No),
     "indicator": [indicator1, indicator2, ...]
 }}
-
 
 """

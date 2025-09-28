@@ -7,3 +7,4 @@ torch==2.8.0
 openai-whisper==20250625
 matplotlib
 numpy
+pandas
