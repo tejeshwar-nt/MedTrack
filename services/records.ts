@@ -435,7 +435,7 @@ export async function analyzePatientRecords(
   patientUid: string
 ): Promise<Record<string, any> | null> {
   // Replace with your actual backend URL (local or deployed)
-  const API_BASE_URL = 'http://127.0.0.1:8000';
+  const API_BASE_URL = 'https://backend-apis-1039832299695.us-central1.run.app';
 
   try {
   // --- Step 1: Update the backend with the latest records ---
@@ -505,6 +505,10 @@ export async function getPatientHighlights(patientUid: string): Promise<Highligh
   }
 }
 
+export type PlotResponse = {
+  plot_url: string;
+};
+
 /**
  * Fetches a URL for a patient's symptom plot from the backend.
  * @param patientUid The UID of the patient to generate a plot for.
@@ -513,7 +517,7 @@ export async function getPatientHighlights(patientUid: string): Promise<Highligh
 export async function getPatientPlotUrl(patientUid: string): Promise<PlotResponse | null> {
   console.log(`[API] Fetching plot URL for patient: ${patientUid}`);
   
-  const API_BASE_URL = 'https://v1-1039832299695.us-central1.run.app';
+  const API_BASE_URL = 'https://backend-apis-1039832299695.us-central1.run.app';
   const plotEndpoint = `${API_BASE_URL}/test_full_pipeline/${patientUid}`; 
   
   try {
