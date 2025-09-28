@@ -5,7 +5,7 @@ import {
   useWindowDimensions,
   Alert,
   ScrollView,
-  View,
+  View as RNView,
   Text,
   Image,
 } from 'react-native';
@@ -69,49 +69,49 @@ function DayNode({ day, onOpen }: { day: DayGroup; onOpen: () => void }) {
   const extra = Math.max(0, icons.length - maxVis);
 
   return (
-    <View style={styles.timelineNodeGroup}>
+    <RNView style={styles.timelineNodeGroup}>
       {/* Node Container (Circle) - is a Clickable Area */}
       <Pressable onPress={onOpen} style={styles.dayNodeCircle}>
-        <View style={styles.dayNodeInner}>
+        <RNView style={styles.dayNodeInner}>
           <Text style={styles.dayCount}>{day.items.length}</Text>
           
           {vis.length === 1 && (
-            <View style={styles.iconSingleRow}>
+            <RNView style={styles.iconSingleRow}>
               <Text style={styles.iconText}>{vis[0]}</Text>
-            </View>
+            </RNView>
           )}
 
           {vis.length === 2 && (
-            <View style={styles.iconTopRow}>
+            <RNView style={styles.iconTopRow}>
               <Text style={styles.iconText}>{vis[0]}</Text>
               <Text style={styles.iconText}>{vis[1]}</Text>
-            </View>
+            </RNView>
           )}
 
           {vis.length >= 3 && (
             <>
-              <View style={styles.iconTopRow}>
+              <RNView style={styles.iconTopRow}>
                 <Text style={styles.iconText}>{vis[0]}</Text>
                 <Text style={styles.iconText}>{vis[1]}</Text>
-              </View>
-              <View style={styles.iconBottomRow}>
+              </RNView>
+              <RNView style={styles.iconBottomRow}>
                 {extra > 0 ? (
                   <Text style={styles.iconPlus}>+{extra}</Text>
                 ) : (
                   <Text style={styles.iconText}>{vis[2]}</Text>
                 )}
-              </View>
+              </RNView>
             </>
           )}
-        </View>
+        </RNView>
       </Pressable>
 
       {/* Black dot on the horizontal timeline line */}
-      <View style={styles.dayDot} />
+      <RNView style={styles.dayDot} />
 
       {/* Date below the dot in Month Abbreviation Day format */}
       <Text style={styles.dayFullDate}>{day.fullDate}</Text>
-    </View>
+    </RNView>
   );
 }
 
@@ -123,7 +123,7 @@ function ExpandedDayModal({ day, onClose }: { day: DayGroup; onClose: () => void
   const sorted = day.items.slice().sort((a, b) => a.createdAt - b.createdAt);
 
   return (
-    <View style={modalStyles.overlay}>
+    <RNView style={modalStyles.overlay}>
       <SafeAreaView edges={['top', 'left', 'right', 'bottom']} style={modalStyles.modalSafe}>
         {/* Close X top-left */}
         <Pressable
@@ -135,35 +135,35 @@ function ExpandedDayModal({ day, onClose }: { day: DayGroup; onClose: () => void
         </Pressable>
 
         {/* Header with full MM/DD/YYYY */}
-        <View style={modalStyles.header}>
+        <RNView style={modalStyles.header}>
           <Text style={modalStyles.headerDate}>
             {new Date(day.dateKey).toLocaleDateString('en-US')}
           </Text>
-        </View>
+        </RNView>
 
         {/* Body wrapper so we can position a full-height vertical line behind rows */}
-        <View style={modalStyles.bodyWrapper}>
+        <RNView style={modalStyles.bodyWrapper}>
           {/* Full vertical line (spans the whole modal body) — sits behind node dots */}
-          <View style={modalStyles.fullVerticalLine} />
+          <RNView style={modalStyles.fullVerticalLine} />
 
           {/* Each interaction is its own row so time aligns exactly with its assets */}
           <ScrollView style={modalStyles.body} contentContainerStyle={{ paddingBottom: 48 }}>
             {sorted.map((it) => (
-              <View key={it.id} style={modalStyles.interactionRow}>
+              <RNView key={it.id} style={modalStyles.interactionRow}>
                 {/* Left: time */}
-                <View style={modalStyles.timesColumn}>
+                <RNView style={modalStyles.timesColumn}>
                   <Text style={modalStyles.timeTextLarger}>
                     {new Date(it.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                   </Text>
-                </View>
+                </RNView>
 
                 {/* Middle: dot only (vertical line is behind all rows) */}
-                <View style={modalStyles.connectorColumn}>
-                  <View style={modalStyles.nodeDot} />
-                </View>
+                <RNView style={modalStyles.connectorColumn}>
+                  <RNView style={modalStyles.nodeDot} />
+                </RNView>
 
                 {/* Right: assets for THIS interaction - horizontal scroll if multiple assets */}
-                <View style={modalStyles.assetsColumn}>
+                <RNView style={modalStyles.assetsColumn}>
                   <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
@@ -171,38 +171,38 @@ function ExpandedDayModal({ day, onClose }: { day: DayGroup; onClose: () => void
                   >
                     {/* Image */}
                     {it.type === 'image' && it.uri ? (
-                      <View style={modalStyles.assetCard}>
+                      <RNView style={modalStyles.assetCard}>
                         <Image source={{ uri: it.uri }} style={modalStyles.assetImage} />
                         {it.text ? <Text style={modalStyles.assetCaption}>{it.text}</Text> : null}
-                      </View>
+                      </RNView>
                     ) : null}
 
                     {/* Voice - placeholder */}
                     {it.type === 'voice' && it.uri ? (
-                      <View style={modalStyles.assetCard}>
-                        <View style={modalStyles.assetContent}>
+                      <RNView style={modalStyles.assetCard}>
+                        <RNView style={modalStyles.assetContent}>
                           <Text style={{ fontWeight: '700000' }}>🎙️ Voice recording</Text>
                           <Text style={{ color: '#666666', fontSize: 12 }}>{it.uri.split('/').pop()}</Text>
-                        </View>
-                      </View>
+                        </RNView>
+                      </RNView>
                     ) : null}
 
                     {/* Text asset */}
                     {it.type === 'text' && it.text ? (
-                      <View style={modalStyles.assetCard}>
+                      <RNView style={modalStyles.assetCard}>
                         <ScrollView style={{ maxHeight: 360 }}>
                           <Text style={modalStyles.assetText}>{it.text}</Text>
                         </ScrollView>
-                      </View>
+                      </RNView>
                     ) : null}
                   </ScrollView>
-                </View>
-              </View>
+                </RNView>
+              </RNView>
             ))}
           </ScrollView>
-        </View>
+        </RNView>
       </SafeAreaView>
-    </View>
+    </RNView>
   );
 }
 
@@ -250,7 +250,11 @@ export default function HomePage() {
                 onPress={() => {
                   Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
                     { text: 'Cancel', style: 'cancel' },
-                    { text: 'Sign Out', style: 'destructive', onPress: async () => { await signOut(); router.push('/signin'); } },
+                    { text: 'Sign Out', style: 'destructive', onPress: async () => { try { await signOut(); router.replace('/signin');
+                    } catch (e) {
+                      console.error('Sign out failed', e);
+                    }
+                  }},
                   ]);
                 }}
                 style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }]}
@@ -262,22 +266,22 @@ export default function HomePage() {
         />
 
         <SafeAreaView style={styles.safe}>
-          <View style={styles.patientScreen}>
+          <RNView style={styles.patientScreen}>
             <Text style={styles.welcomeTop}>
               Welcome back, {profile?.displayName || user.displayName || 'User'}!
             </Text>
 
             {/* TIMELINE (horizontal) */}
-            <View style={styles.topHalf}>
+            <RNView style={styles.topHalf}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.fullBleed} contentContainerStyle={styles.timelineScrollContent}>
                 {/* Black line runs horizontally across the content */}
-                <View style={styles.timelineCenterLineHorizontal} />
+                <RNView style={styles.timelineCenterLineHorizontal} />
 
                 {Object.values(groups).map((day) => (
                   <DayNode key={day.dateKey} day={day} onOpen={() => setExpandedDayId(day.dateKey)} />
                 ))}
               </ScrollView>
-            </View>
+            </RNView>
 
             <Text style={styles.sectionTitle}>Share how you're feeling today</Text>
             {/* InputSection (Media Input UI) */}
@@ -287,7 +291,7 @@ export default function HomePage() {
             {expandedDayId && groups[expandedDayId] && (
               <ExpandedDayModal day={groups[expandedDayId]} onClose={() => setExpandedDayId(null)} />
             )}
-          </View>
+          </RNView>
         </SafeAreaView>
       </>
     );
@@ -299,8 +303,8 @@ export default function HomePage() {
     // provider or other
     return (
       <SafeAreaView style={styles.safe}>
-        <View style={styles.screen}>
-          <View style={styles.card}>
+        <RNView style={styles.screen}>
+          <RNView style={styles.card}>
             <Text style={styles.logo}>MedTrak</Text>
             {profile ? (
               <>
@@ -316,14 +320,14 @@ export default function HomePage() {
               onPress={() => {
                 Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
                   { text: 'Cancel', style: 'cancel' },
-                  { text: 'Sign Out', style: 'destructive', onPress: async () => { await signOut(); router.push('/signin'); } },
+                  { text: 'Sign Out', style: 'destructive', onPress: async () => { await signOut(); router.replace('/'); } },
                 ]);
               }}
             >
               <Text style={styles.signOutText}>Sign Out</Text>
             </Pressable>
-          </View>
-        </View>
+          </RNView>
+        </RNView>
       </SafeAreaView>
     );
   }
@@ -331,28 +335,28 @@ export default function HomePage() {
   // not logged in
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.screen}>
-        <View style={styles.card}>
-          <Text style={styles.logo}>🔎 MedTrak</Text>
+      <RNView style={styles.screen}>
+        <RNView style={styles.card}>
           <Text style={styles.question}>Are you a patient or a provider?</Text>
 
-          <View style={[styles.buttonRow]}>
-            <Link href="/signupPatient" asChild>
-              <Pressable style={({ pressed }) => [styles.primaryBtn, pressed && styles.btnPressed]}>
-                <Text style={styles.primaryTxt}>I'm a Patient</Text>
-              </Pressable>
-            </Link>
+          <RNView style={styles.buttonRow}>
+            <Pressable
+              onPress={() => router.push('/signupPatient')}
+              style={({ pressed }) => [styles.primaryBtn, pressed && styles.btnPressed]}
+            >
+              <Text style={styles.primaryTxt}>I'm a Patient</Text>
+            </Pressable>
 
-            <Link href="/signupProvider" asChild>
-              <Pressable style={({ pressed }) => [styles.outlineBtn, pressed && styles.btnPressed]}>
-                <Text style={styles.outlineTxt}>I'm a Provider</Text>
-              </Pressable>
-            </Link>
-          </View>
-
+            <Pressable
+              onPress={() => router.push('/signupProvider')}
+              style={({ pressed }) => [styles.outlineBtn, pressed && styles.btnPressed]}
+            >
+              <Text style={styles.outlineTxt}>I'm a Provider</Text>
+            </Pressable>
+          </RNView>
           <Text style={styles.small}>By continuing you agree to our Terms & Privacy.</Text>
-        </View>
-      </View>
+        </RNView>
+      </RNView>
     </SafeAreaView>
   );
 } 
@@ -364,27 +368,27 @@ function InputSection() {
   const [tab, setTab] = useState<'text' | 'image' | 'voice'>('text');
 
   return (
-    <View style={styles.inputSection}>
-      <View style={styles.segmentedContainer}>
+    <RNView style={styles.inputSection}>
+      <RNView style={styles.segmentedContainer}>
         <Pressable onPress={() => setTab('text')} style={({ pressed }) => [styles.segment, tab === 'text' && styles.segmentActive, pressed && { opacity: 0.9 }]}>
           <Text style={[styles.segmentLabel, tab === 'text' && styles.segmentLabelActive]}>Text</Text>
         </Pressable>
-        <View style={styles.segmentDivider} />
+        <RNView style={styles.segmentDivider} />
         <Pressable onPress={() => setTab('image')} style={({ pressed }) => [styles.segment, tab === 'image' && styles.segmentActive, pressed && { opacity: 0.9 }]}>
           <Text style={[styles.segmentLabel, tab === 'image' && styles.segmentLabelActive]}>Image</Text>
         </Pressable>
-        <View style={styles.segmentDivider} />
+        <RNView style={styles.segmentDivider} />
         <Pressable onPress={() => setTab('voice')} style={({ pressed }) => [styles.segment, tab === 'voice' && styles.segmentActive, pressed && { opacity: 0.9 }]}>
           <Text style={[styles.segmentLabel, tab === 'voice' && styles.segmentLabelActive]}>Voice</Text>
         </Pressable>
-      </View>
+      </RNView>
 
-      <View style={styles.instructionsCard}>
+      <RNView style={styles.instructionsCard}>
         {tab === 'text' && <Text style={styles.instructionsText}>Please enter a brief description of your symptoms, concerns, or updates.</Text>}
         {tab === 'image' && <Text style={styles.instructionsText}>Upload clear photos relevant to your condition (e.g., a rash). Ensure good lighting.</Text>}
         {tab === 'voice' && <Text style={styles.instructionsText}>Record a short voice note describing your symptoms, timing, and any triggers.</Text>}
-      </View>
-    </View>
+      </RNView>
+    </RNView>
   );
 }
 
@@ -581,9 +585,9 @@ const styles = StyleSheet.create({
   logo: { fontSize: 36, fontWeight: '800', marginBottom: 12, textAlign: 'center', color: '#0b0b0b' },
   question: { fontSize: 18, color: '#333', marginBottom: 18, textAlign: 'center' },
   buttonRow: { flexDirection: 'row', width: '100%', marginTop: 20, marginBottom: 12, justifyContent: 'space-around' },
-  primaryBtn: { flex: 1, height: 52, borderRadius: 26, borderWidth: 1, backgroundColor: '#0b84ff', alignItems: 'center', justifyContent: 'center', marginHorizontal: 6 },
-  primaryTxt: { color: 'white', fontSize: 16, fontWeight: '600' },
-  outlineBtn: { flex: 1, paddingVertical: 14, borderRadius: 10, borderWidth: 1, borderColor: '#0b84ff', alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' },
+  primaryBtn: { flex: 1, color: '#0b84ff', height: 52, borderRadius: 26, borderWidth: 0, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center', marginHorizontal: 6},
+  primaryTxt: { color: '#0b84ff', fontSize: 16, fontWeight: '600' },
+  outlineBtn: { flex: 1, paddingVertical: 14, borderRadius: 10, borderWidth: 1, borderColor: 'white', alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' },
   outlineTxt: { color: '#0b84ff', fontSize: 16, fontWeight: '600' },
   btnPressed: { opacity: 0.88 },
   small: { marginTop: 45, color: '#666', fontSize: 12, textAlign: 'center' },
@@ -699,7 +703,7 @@ const modalStyles = StyleSheet.create({
   },
 
   /* Right assets column: cards will size to content (no fixed width/height).
-     The horizontal ScrollView contains asset cards that use alignSelf:'flex-start'. */
+     The horizontal ScrollRNView contains asset cards that use alignSelf:'flex-start'. */
   assetsColumn: { flex: 1 },
 
   assetCard: {
