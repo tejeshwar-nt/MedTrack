@@ -20,7 +20,7 @@ type Message = {
   audioDurationSec?: number;
 };
 
-export default function LLMInputSection({ initialPrompt }: { initialPrompt: string }) {
+export default function LLMInputSection({ initialPrompt, onRecordSaved }: { initialPrompt: string; onRecordSaved?: () => void }) {
   const [messages, setMessages] = useState<Message[]>([
     { id: 'init', role: 'assistant', type: 'text', content: initialPrompt },
   ]);
@@ -160,6 +160,7 @@ export default function LLMInputSection({ initialPrompt }: { initialPrompt: stri
       try {
         const saved = await saveTextRecord(userText);
         console.log('[records] text saved', saved.id);
+        try { onRecordSaved && onRecordSaved(); } catch {}
         // Fire-and-forget follow-up generation
         generateAndAttachFollowUpsForText(saved.id!, userText);
         // Subscribe to follow-ups to pose them when ready
@@ -190,6 +191,7 @@ export default function LLMInputSection({ initialPrompt }: { initialPrompt: stri
           const url = await uploadImage(uri, 'images');
           const saved = await saveImageRecord(url, userText);
           console.log('[records] image uploaded', url, 'saved', saved.id);
+          try { onRecordSaved && onRecordSaved(); } catch {}
           // Include the user's description along with the LLM-generated description
           describeAndAttachLlmText(saved.id!, url, userText);
           // Subscribe for follow-ups for this image record
@@ -228,6 +230,7 @@ export default function LLMInputSection({ initialPrompt }: { initialPrompt: stri
         const url = await uploadAudio(uri, 'audio');
         const saved = await saveVoiceRecord(url, durationSec);
         console.log('[records] voice uploaded', url, 'saved', saved.id);
+        try { onRecordSaved && onRecordSaved(); } catch {}
         // Fire-and-forget transcription job
         transcribeAndAttachLlmText(saved.id!, url);
         // Subscribe for follow-ups for this voice record

@@ -262,3 +262,77 @@ export async function fetchRecordsGroupedByDay(patientUid?: string): Promise<Rec
 }
 
 
+// Return all records for a specific patient as plain JSON-safe objects
+export async function fetchRecordsForPatient(patientUid: string, order: 'asc' | 'desc' = 'asc'): Promise<AnyRecord[]> {
+  if (!patientUid) throw new Error('patientUid is required');
+
+  let snap: any;
+  try {
+    const q = query(
+      collection(db, 'records'),
+      where('patientUid', '==', patientUid),
+      orderBy('createdAt', order)
+    );
+    snap = await getDocs(q);
+  } catch (e: any) {
+    // Fallback when composite index is missing – read then sort locally
+    if (e?.code === 'failed-precondition') {
+      const q2 = query(collection(db, 'records'), where('patientUid', '==', patientUid));
+      snap = await getDocs(q2);
+    } else {
+      throw e;
+    }
+  }
+
+  const out: AnyRecord[] = [];
+  snap.forEach((d: any) => {
+    const raw: any = d.data();
+    const createdAt: number = typeof raw.createdAt === 'number'
+      ? raw.createdAt
+      : (typeof raw.createdAt?.toMillis === 'function' ? raw.createdAt.toMillis() : Date.now());
+
+    const rec: AnyRecord = { ...(raw as AnyRecord), id: d.id, createdAt } as AnyRecord;
+    // Ensure JSON-safe (remove any Firestore Timestamp/FieldValue artifacts)
+    const jsonSafe: AnyRecord = JSON.parse(JSON.stringify(rec));
+    out.push(jsonSafe);
+  });
+
+  // If we couldn't order via index, ensure consistent ordering client-side
+  out.sort((a, b) => (a.createdAt as number) - (b.createdAt as number));
+  if (order === 'desc') out.reverse();
+  // Print JSON of results
+  try {
+    console.log('[records] fetchRecordsForPatient', patientUid, 'count=', out.length, '\n', JSON.stringify(out, null, 2));
+  } catch {}
+  return out;
+}
+
+
+/**
+ * Given a patient's flat record list (from fetchRecordsForPatient) and the patient id,
+ * call a backend analysis API and return a dictionary of results.
+ *
+ * NOTE: Skeleton only — implement the API call and shape the return as needed.
+ */
+export async function analyzePatientRecords(
+  records: AnyRecord[],
+  patientUid: string
+): Promise<Record<string, any> | null> {
+  try {
+    // TODO: Implement API call here, e.g.:
+    // const res = await fetch('https://your-api/analysis', {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({ patientUid, records }),
+    // });
+    // if (!res.ok) throw new Error('Analysis API failed');
+    // const data = await res.json();
+    // return data as Record<string, any>;
+    return null;
+  } catch (e) {
+    console.warn('[records] analyzePatientRecords error', e);
+    return null;
+  }
+}
+
+
