@@ -277,7 +277,7 @@ export default function HomePage() {
 
             <Text style={styles.sectionTitle}>Share how you're feeling today</Text>
             {/* InputSection (Media Input UI) */}
-            <InputSection />
+            <LLMInputSection initialPrompt="Please enter a brief description of your symptoms, concerns, or updates." />
 
             {/* Full-screen overlay modal when expandedDayId is set */}
             {expandedDayId && groups[expandedDayId] && (
