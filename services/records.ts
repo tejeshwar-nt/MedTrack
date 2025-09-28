@@ -141,11 +141,11 @@ export async function transcribeAudioToText(audioUrl: string): Promise<string | 
     // 4. Get the transcribed text from the response
     const transcribedText = await apiResponse.text(); // Your endpoint returns plain text
     
-    console.log('[llm] Transcription successful.');
+    console.log('[llm] Transcription successful. Text:', (transcribedText ?? '').slice(0, 500));
     return transcribedText;
 
   } catch (error) {
-    console.error('Error during audio transcription:', error);
+    // console.error('Error during audio transcription:', error);
     return null; // Return null on failure
   }
 }
@@ -201,18 +201,18 @@ export async function describeImageWithLlm(imageUrl: string): Promise<string | n
 
     if (!apiResponse.ok) {
       const errorBody = await apiResponse.text();
-      console.error("Server responded with an error:", errorBody);
+      // console.error("Server responded with an error:", errorBody);
       throw new Error(`API error! status: ${apiResponse.status}`);
     }
 
     // 4. Get the descriptive text from the response
     const descriptionText = await apiResponse.text(); // Your endpoint returns a string
     
-    console.log('[llm] Image description successful.');
+    console.log('[llm] Image description successful. Text:', (descriptionText ?? '').slice(0, 500));
     return descriptionText;
 
   } catch (error) {
-    console.error('Error during image description:', error);
+    // console.error('Error during image description:', error);
     return null; // Return null on failure
   }
 }
@@ -235,7 +235,7 @@ export function describeAndAttachLlmText(recordId: string, imageUrl: string, use
         console.log('[llm] follow-ups stored for', recordId);
       }
     } catch (e) {
-      console.warn('[llm] image description failed', e);
+      // console.warn('[llm] image description failed', e);
     }
   })();
 }
@@ -263,7 +263,7 @@ export async function setFollowUpResponse(recordId: string, index: number, userR
 }
 
 // --- Follow-up questions for text (placeholder) ---
-export async function generateFollowUpsForText(userText: string): Promise<string[] | null> {
+export async function generateFollowUpsForText(userText: string): Promise<FollowUpQuestion[] | null> {
   console.log('[llm] Generating follow-ups for text length', userText?.length ?? 0);
   
   const apiEndpoint = 'https://backend-apis-1039832299695.us-central1.run.app/followup';
@@ -288,9 +288,13 @@ export async function generateFollowUpsForText(userText: string): Promise<string
     
     // Parse the JSON response which should be a list of strings
     const followupQuestions: string[] = await response.json();
+    // Map to FollowUpQuestion objects
+    const mapped: FollowUpQuestion[] = (followupQuestions || [])
+      .filter((q) => typeof q === 'string' && q.trim().length > 0)
+      .map((q) => ({ question: q }));
     
-    console.log('[llm] Follow-up questions generated successfully.');
-    return followupQuestions;
+    console.log('[llm] Follow-up questions generated successfully. Questions:', mapped);
+    return mapped;
 
   } catch (error) {
     console.error('Error generating follow-up questions:', error);
