@@ -1,8 +1,10 @@
 from fastapi import FastAPI, File, UploadFile
+from fastapi.responses import Response
 import whisper
 import uvicorn
 import shutil
 import os
+import io
 import base64
 import json
 
@@ -240,10 +242,19 @@ def plot_summary(summarized: dict):
 	plt.title("Stacked Symptom Scores")
 	plt.legend()
 	
+	buffer = io.BytesIO()
+	plt.savefig(buffer, format="png")
+	plt.close()
+
+	# Rewind the buffer's cursor to the beginning
+	buffer.seek(0)
+
+	return Response(content=buffer.getvalue(), media_type="image/png")
 
 @app.get("/test_plot")
 async def test_plot():
-	plot_summary(await test_record_assistant())
+	summarized = await test_record_assistant()
+	return plot_summary(summarized)
 
 # ------------------------------------------------------------------------
 
