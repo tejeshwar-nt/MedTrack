@@ -20,6 +20,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Expose the port that your application will run on
+ENV PORT 8080
 EXPOSE 8080
 
 # Command to run your application using Uvicorn

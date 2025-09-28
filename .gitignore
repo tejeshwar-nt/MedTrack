@@ -80,3 +80,6 @@ __pycache__/
 
 expo-env.d.ts
 # @end expo-cli
+
+venv
+test.py
