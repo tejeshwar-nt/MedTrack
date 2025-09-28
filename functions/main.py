@@ -121,8 +121,8 @@ async def transcribe_audio(file: UploadFile = File(...)):
 
 # ------------------------------------------------------------------------
 
-@app.get("/followup")
-async def followup_question_generator():
+@app.post("/followup")
+async def followup_question_generator(records: list[str]):
 	prompt_1 = prompts.prompt_template_1.format(record=sample_query)
 
 	messages= [
@@ -158,6 +158,23 @@ async def patient_sample_response():
 	followup_answers = patient_data
 
 	return followup_answers
+
+@app.get("/summarize")
+async def summarize_recods():
+	prompt_2 = prompts.prompt_template_2.format(record=sample_query, followup_answers = await patient_sample_response())
+
+	messages = [
+		{"role": "user", "content": prompt_2}
+	]
+
+	response = await query_llm(messages, temperature=0.3)
+
+	# print(response.choices[0].message.content)
+
+	content2 = response.choices[0].message.content
+	data2 = json.loads(content2)
+
+	return data2
 
 # ------------------------------------------------------------------------
 
