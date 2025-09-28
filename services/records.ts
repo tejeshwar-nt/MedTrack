@@ -323,15 +323,16 @@ export async function fetchRecordsGroupedByDay(patientUid?: string): Promise<Rec
   // If the index is missing, fall back to fetching without orderBy and sort in-memory.
   let snap: any;
   try {
+    // Prefer serverTime for ordering (falls back below if index missing)
     const q = query(
       collection(db, 'records'),
       where('patientUid', '==', uid),
-      orderBy('createdAt', 'asc')
+      orderBy('serverTime', 'asc')
     );
     snap = await getDocs(q);
   } catch (e: any) {
     if (e?.code === 'failed-precondition') {
-      console.warn('[records] Missing composite index for (patientUid, createdAt). Falling back to client-side sort.');
+      console.warn('[records] Missing composite index for (patientUid, serverTime). Falling back to client-side sort.');
       const q2 = query(collection(db, 'records'), where('patientUid', '==', uid));
       snap = await getDocs(q2);
     } else {
@@ -343,10 +344,16 @@ export async function fetchRecordsGroupedByDay(patientUid?: string): Promise<Rec
   const all: AnyRecord[] = [];
   snap.forEach((doc: any) => {
     const data: any = doc.data();
-    const createdAt: number = typeof data.createdAt === 'number'
-      ? data.createdAt
-      : (typeof data.createdAt?.toMillis === 'function' ? data.createdAt.toMillis() : Date.now());
-    all.push({ ...(data as AnyRecord), id: doc.id, createdAt } as AnyRecord);
+    // Prefer serverTime; fall back to createdAt
+    const serverTimeMs: number | null = typeof data.serverTime === 'number'
+      ? data.serverTime
+      : (typeof data.serverTime?.toMillis === 'function' ? data.serverTime.toMillis() : null);
+    const createdAtMs: number = serverTimeMs ?? (
+      typeof data.createdAt === 'number'
+        ? data.createdAt
+        : (typeof data.createdAt?.toMillis === 'function' ? data.createdAt.toMillis() : Date.now())
+    );
+    all.push({ ...(data as AnyRecord), id: doc.id, createdAt: createdAtMs } as AnyRecord);
   });
 
   all.sort((a, b) => (a.createdAt as number) - (b.createdAt as number));
@@ -371,7 +378,7 @@ export async function fetchRecordsForPatient(patientUid: string, order: 'asc' | 
     const q = query(
       collection(db, 'records'),
       where('patientUid', '==', patientUid),
-      orderBy('createdAt', order)
+      orderBy('serverTime', order)
     );
     snap = await getDocs(q);
   } catch (e: any) {
@@ -387,9 +394,14 @@ export async function fetchRecordsForPatient(patientUid: string, order: 'asc' | 
   const out: AnyRecord[] = [];
   snap.forEach((d: any) => {
     const raw: any = d.data();
-    const createdAt: number = typeof raw.createdAt === 'number'
-      ? raw.createdAt
-      : (typeof raw.createdAt?.toMillis === 'function' ? raw.createdAt.toMillis() : Date.now());
+    const serverTimeMs: number | null = typeof raw.serverTime === 'number'
+      ? raw.serverTime
+      : (typeof raw.serverTime?.toMillis === 'function' ? raw.serverTime.toMillis() : null);
+    const createdAt: number = serverTimeMs ?? (
+      typeof raw.createdAt === 'number'
+        ? raw.createdAt
+        : (typeof raw.createdAt?.toMillis === 'function' ? raw.createdAt.toMillis() : Date.now())
+    );
 
     const rec: AnyRecord = { ...(raw as AnyRecord), id: d.id, createdAt } as AnyRecord;
     // Ensure JSON-safe (remove any Firestore Timestamp/FieldValue artifacts)
