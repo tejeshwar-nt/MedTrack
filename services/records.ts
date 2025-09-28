@@ -434,21 +434,102 @@ export async function analyzePatientRecords(
   records: AnyRecord[],
   patientUid: string
 ): Promise<Record<string, any> | null> {
+  // Replace with your actual backend URL (local or deployed)
+  const API_BASE_URL = 'http://127.0.0.1:8000';
+
   try {
-    // TODO: Implement API call here, e.g.:
-    // const res = await fetch('https://your-api/analysis', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ patientUid, records }),
-    // });
-    // if (!res.ok) throw new Error('Analysis API failed');
-    // const data = await res.json();
-    // return data as Record<string, any>;
-    return null;
+  // --- Step 1: Update the backend with the latest records ---
+  // This ensures the analysis is run on the most current data.
+  const updateResponse = await fetch(`${API_BASE_URL}/update_data`, {
+    method: 'POST',
+    headers: {
+    'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(records),
+  });
+
+  if (!updateResponse.ok) {
+    throw new Error(`API Error (update): ${updateResponse.status}`);
+  }
+  console.log('[API] Backend records updated successfully.');
+
+  // --- Step 2: Request the patient summary/analysis ---
+  const analysisResponse = await fetch(
+    `${API_BASE_URL}/summarize_patient/${patientUid}`,
+    {
+    method: 'POST',
+    // No body is needed for this request as the UID is in the URL
+    }
+  );
+
+  if (!analysisResponse.ok) {
+    throw new Error(`API Error (summarize): ${analysisResponse.status}`);
+  }
+
+  // --- Step 3: Return the analysis result ---
+  const result = await analysisResponse.json();
+  return result;
+  
   } catch (e) {
-    console.warn('[records] analyzePatientRecords error', e);
+  console.warn('[records] analyzePatientRecords error', e);
+  return null;
+  }
+}
+
+/**
+ * Fetches patient analysis highlights from the backend.
+ * @param patientUid The UID of the patient to analyze.
+ * @returns An array of highlight objects, or null on failure.
+ */
+export async function getPatientHighlights(patientUid: string): Promise<Highlight[] | null> {
+  console.log(`[API] Fetching highlights for patient: ${patientUid}`);
+  
+  const API_BASE_URL = 'https://backend-apis-1039832299695.us-central1.run.app';
+  const highlightsEndpoint = `${API_BASE_URL}/analysis/highlights/${patientUid}`;
+  
+  try {
+    const response = await fetch(highlightsEndpoint); // This is a GET request
+
+    if (!response.ok) {
+      throw new Error(`Highlights API error! status: ${response.status}`);
+    }
+
+    const highlights: Highlight[] = await response.json();
+    console.log('[API] Successfully fetched highlights.');
+    
+    return highlights;
+
+  } catch (error) {
+    console.error('Error fetching patient highlights:', error);
     return null;
   }
 }
 
+/**
+ * Fetches a URL for a patient's symptom plot from the backend.
+ * @param patientUid The UID of the patient to generate a plot for.
+ * @returns An object containing the plot URL, or null on failure.
+ */
+export async function getPatientPlotUrl(patientUid: string): Promise<PlotResponse | null> {
+  console.log(`[API] Fetching plot URL for patient: ${patientUid}`);
+  
+  const API_BASE_URL = 'https://v1-1039832299695.us-central1.run.app';
+  const plotEndpoint = `${API_BASE_URL}/test_full_pipeline/${patientUid}`; 
+  
+  try {
+    const response = await fetch(plotEndpoint); // This is a GET request
 
+    if (!response.ok) {
+      throw new Error(`Plot API error! status: ${response.status}`);
+    }
+
+    const plotData: PlotResponse = await response.json();
+    console.log('[API] Successfully fetched plot URL.');
+    
+    return plotData;
+
+  } catch (error) {
+    console.error('Error fetching patient plot URL:', error);
+    return null;
+  }
+}

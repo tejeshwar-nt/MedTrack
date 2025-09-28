@@ -9,4 +9,5 @@ matplotlib
 numpy
 pandas
 seaborn
+pydantic
 firebase-admin

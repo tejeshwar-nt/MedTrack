@@ -21,6 +21,9 @@ import prompts
 import example_queries
 from tmp import api_key
 
+from pydantic import BaseModel, Field
+from typing import List, Optional, Any, Dict
+
 import uuid
 import firebase_admin
 from firebase_admin import credentials, storage
@@ -384,6 +387,61 @@ async def test_full_pipeline(patient_uid: str):
     if "error" in summarized_data:
         return summarized_data
     return plot_summary(summarized_data)
+
+# ------------------------------------------------------------------------
+
+
+class Record(BaseModel):
+    patientUid: str
+    userText: str
+    createdAt: int
+    # Use Optional for fields that might be null or missing
+    followUps: Optional[Any] = None
+
+class RecordList(BaseModel):
+    # This will expect the incoming JSON to be an array of the 'Record' objects
+    # Pydantic will automatically handle the conversion from a list of dicts.
+    # We use a custom root type for this.
+    root: List[Record]
+
+
+# --- 2. Update the Endpoint to Use the Pydantic Model ---
+
+@app.post("/update_data")
+async def update_data(new_records: List[Record]):
+    """
+    Receives a list of new records and appends them
+    to the global pandas DataFrame.
+    """
+    global df
+
+    if not new_records:
+        return {"status": "no data", "message": "No new records were provided."}
+
+    # 1. Convert the Pydantic models directly to a list of dicts
+    #    This is cleaner and safer than manual processing.
+    records_to_add = [
+        {
+            "patientUid": record.patientUid,
+            "userText": record.userText,
+            "followUps?": record.followUps,
+            # Convert Firestore's millisecond timestamp to seconds
+            "createdAt": record.createdAt / 1000
+        } 
+        for record in new_records
+    ]
+
+    # 2. Create a temporary DataFrame from the new list of records
+    new_df = pd.DataFrame(records_to_add)
+
+    # 3. Concatenate the global DataFrame with the new one
+    df = pd.concat([df, new_df], ignore_index=True)
+
+    # 4. Remove any duplicate entries
+    df.drop_duplicates(subset=['patientUid', 'createdAt'], keep='last', inplace=True)
+
+    print(f"DataFrame successfully updated. Total records now: {len(df)}")
+    return {"status": "success", "new_records_added": len(new_df)}
 
 # -------------------------------------------------------------------------------------------------
 
