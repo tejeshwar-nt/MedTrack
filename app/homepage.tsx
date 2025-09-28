@@ -1,9 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Pressable, View as RNView, useWindowDimensions, Alert, ScrollView, View, Text, KeyboardAvoidingView, Platform, Image, } from 'react-native';
-import { Link, useRouter, Stack } from 'expo-router';
+import { Link, useRouter, Stack, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useHeaderHeight } from '@react-navigation/elements';
 import { useAuth } from '../hooks/useAuth';
 import LLMInputSection from '../components/LLMInputSection';
+import { fetchRecordsGroupedByDay } from '../services/records';
+import { AnyRecord } from '../models/record';
+import { Audio } from 'expo-av';
+import { Feather } from '@expo/vector-icons';
 
 /* --------------------
    Types
@@ -14,6 +19,7 @@ type TimelineItem = {
   uri?: string;
   text?: string;
   createdAt: number;
+  audioDurationSec?: number;
 };
 
 type DayGroup = {
@@ -113,6 +119,39 @@ function DayNode({ day, onOpen }: { day: DayGroup; onOpen: () => void }) {
 function ExpandedDayModal({ day, onClose }: { day: DayGroup; onClose: () => void }) {
   const insets = useSafeAreaInsets();
   const sorted = day.items.slice().sort((a, b) => a.createdAt - b.createdAt);
+  const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const [progress, setProgress] = useState<{ position: number; duration: number }>({ position: 0, duration: 0 });
+
+  useEffect(() => {
+    return () => {
+      sound?.unloadAsync().catch(() => {});
+    };
+  }, [sound]);
+
+  async function togglePlay(item: TimelineItem) {
+    if (!item.uri) return;
+    try {
+      if (playingId === item.id && sound) {
+        const st = await sound.getStatusAsync() as any;
+        if (st?.isPlaying) await sound.pauseAsync(); else await sound.playAsync();
+        return;
+      }
+      if (sound) {
+        try { await sound.unloadAsync(); } catch {}
+      }
+      const { sound: newSound } = await Audio.Sound.createAsync({ uri: item.uri }, { shouldPlay: true });
+      newSound.setOnPlaybackStatusUpdate((s: any) => {
+        if (!s?.isLoaded) return;
+        setProgress({ position: s.positionMillis ?? 0, duration: s.durationMillis ?? Math.max(1, s.positionMillis ?? 1) });
+        if (s.didJustFinish) setPlayingId(null);
+      });
+      setSound(newSound);
+      setPlayingId(item.id);
+    } catch (e) {
+      console.warn('[timeline] play error', e);
+    }
+  }
 
   return (
     <RNView style={modalStyles.overlay}>
@@ -126,11 +165,9 @@ function ExpandedDayModal({ day, onClose }: { day: DayGroup; onClose: () => void
           <Text style={modalStyles.closeTxt}>✕</Text>
         </Pressable>
 
-        {/* Header with full MM/DD/YYYY */}
+        {/* Header with short date (e.g., "Sep 27") */}
         <RNView style={modalStyles.header}>
-          <Text style={modalStyles.headerDate}>
-            {new Date(day.dateKey).toLocaleDateString('en-US')}
-          </Text>
+          <Text style={modalStyles.headerDate}>{day.fullDate}</Text>
         </RNView>
 
         {/* Body wrapper so we can position a full-height vertical line behind rows */}
@@ -169,24 +206,25 @@ function ExpandedDayModal({ day, onClose }: { day: DayGroup; onClose: () => void
                       </RNView>
                     ) : null}
 
-                    {/* Voice - placeholder */}
+                    {/* Voice - playable */}
                     {it.type === 'voice' && it.uri ? (
-                      <RNView style={modalStyles.assetCard}>
-                        <RNView style={modalStyles.assetContent}>
-                          <Text style={{ fontWeight: '700000' }}>🎙️ Voice recording</Text>
-                          <Text style={{ color: '#666666', fontSize: 12 }}>{it.uri.split('/').pop()}</Text>
+                      <RNView style={[modalStyles.assetCard, { flexDirection: 'row', alignItems: 'center' }]}> 
+                        <Pressable onPress={() => togglePlay(it)} style={styles.playBtn} accessibilityLabel="Play voice note">
+                          <Feather name={playingId === it.id ? 'pause' : 'play'} size={18} color="#111" />
+                        </Pressable>
+                        <RNView style={styles.progressRail}>
+                          <RNView style={[styles.progressFill, { width: `${Math.min(100, (progress.duration ? (progress.position / progress.duration) * 100 : 0))}%` }]} />
                         </RNView>
+                        <Text style={styles.timeLabel}>{playingId === it.id ? `${Math.floor((progress.position || 0)/1000)}s` : `${it.audioDurationSec ?? 0}s`}</Text>
                       </RNView>
                     ) : null}
 
-                    {/* Text asset */}
-                    {it.type === 'text' && it.text ? (
-                      <RNView style={modalStyles.assetCard}>
-                        <ScrollView style={{ maxHeight: 360 }}>
-                          <Text style={modalStyles.assetText}>{it.text}</Text>
-                        </ScrollView>
-                      </RNView>
-                    ) : null}
+                {/* Text asset - auto height (no fixed max height) */}
+                {it.type === 'text' && it.text ? (
+                  <RNView style={modalStyles.assetCard}>
+                    <Text style={modalStyles.assetText}>{it.text}</Text>
+                  </RNView>
+                ) : null}
                   </ScrollView>
                 </RNView>
               </RNView>
@@ -206,6 +244,65 @@ export default function HomePage() {
   const { width } = useWindowDimensions();
   const isNarrow = width < 420;
   const { user, profile, signOut } = useAuth();
+  const params = useLocalSearchParams();
+  const insets = useSafeAreaInsets();
+  const headerHeight = useHeaderHeight();
+
+  // Track current patient id at top of page; required param for this view.
+  // If not provided, fall back to signed-in user's uid (e.g., provider viewing their own data).
+  const [currentpatientId, setCurrentpatientId] = useState<string | null>(
+    (typeof params.currentpatientId === 'string' && params.currentpatientId.trim().length > 0)
+      ? params.currentpatientId
+      : (user?.uid ?? null)
+  );
+
+  // Dictionary of records grouped by day
+  const [recordsByDay, setRecordsByDay] = useState<Record<string, AnyRecord[]>>({});
+
+  // If a provider is accessing, force currentpatientId to their own uid.
+  useEffect(() => {
+    if (profile?.role === 'provider' && user?.uid) {
+      if (currentpatientId !== user.uid) setCurrentpatientId(user.uid);
+    } else if (!currentpatientId && user?.uid) {
+      setCurrentpatientId(user.uid);
+    }
+  }, [profile?.role, user?.uid]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!currentpatientId) return;
+        const data = await fetchRecordsGroupedByDay(currentpatientId);
+        console.log('[homepage] fetched recordsByDay for', currentpatientId, data);
+        setRecordsByDay(data);
+        // Build timeline items from fetched records (flatten + sort by createdAt)
+        const combined: TimelineItem[] = [];
+        Object.keys(data).forEach((dayKey) => {
+          const recs = data[dayKey] as AnyRecord[];
+          recs.forEach((r, idx) => {
+            const createdAt = typeof (r as any).createdAt === 'number' ? (r as any).createdAt : Date.now();
+            if ((r as any).kind === 'image') {
+              const imageUrl = (r as any).imageUrl || undefined;
+              const text = (r as any).llmText ?? (r as any).userText ?? undefined;
+              combined.push({ id: (r as any).id ?? `img-${idx}-${createdAt}`, type: 'image', uri: imageUrl, text, createdAt });
+            } else if ((r as any).kind === 'voice') {
+              const audioUrl = (r as any).audioUrl || undefined;
+              const text = (r as any).llmText ?? undefined;
+              const audioDurationSec = (r as any).audioDurationSec ?? undefined;
+              combined.push({ id: (r as any).id ?? `voice-${idx}-${createdAt}`, type: 'voice', uri: audioUrl, text, createdAt, audioDurationSec });
+            } else {
+              const text = (r as any).userText ?? (r as any).llmText ?? '';
+              combined.push({ id: (r as any).id ?? `text-${idx}-${createdAt}`, type: 'text', text, createdAt });
+            }
+          });
+        });
+        combined.sort((a, b) => a.createdAt - b.createdAt);
+        setTimeline(combined);
+      } catch (e) {
+        console.warn('[homepage] failed to fetch grouped records', e);
+      }
+    })();
+  }, [currentpatientId]);
 
   // sample timeline (replace with your data fetch)
   const [timeline, setTimeline] = useState<TimelineItem[]>([
@@ -229,9 +326,11 @@ export default function HomePage() {
   const [expandedDayId, setExpandedDayId] = useState<string | null>(null);
   const groups = groupByDay(timeline); // keyed groups
 
+  let content: React.ReactNode = null;
+
   // Render the patient UI if logged in & patient role
   if (user && profile?.role === 'patient') {
-    return (
+    content = (
       <>
         <Stack.Screen
           options={{
@@ -257,8 +356,8 @@ export default function HomePage() {
           }}
         />
 
-        <SafeAreaView style={styles.safe}>
-          <RNView style={styles.patientScreen}>
+        <SafeAreaView edges={['left','right','bottom']} style={styles.safe}>
+          <RNView style={[styles.patientScreen, { paddingTop: Math.max(12, Math.floor(insets.top * 0.4)) }]}>
             <Text style={styles.welcomeTop}>
               Welcome back, {profile?.displayName || user.displayName || 'User'}!
             </Text>
@@ -287,107 +386,55 @@ export default function HomePage() {
         </SafeAreaView>
       </>
     );
-  }
-
-  //Same functionality as index.tsx so I jus ended up commenting out
-  // Non-patient or not logged in UI (kept similar to your original)
-  if (user) {
-    if (profile?.role === 'patient') {
-      return (
-        <>
-          <Stack.Screen
-            options={{
-              headerTitle: '',
-              headerBackVisible: false,
-              headerRight: () => (
-                <Pressable
-                  onPress={() => {
-                    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-                      { text: 'Cancel', style: 'cancel' },
-                      { text: 'Sign Out', style: 'destructive', onPress: async () => { await signOut(); router.replace('/homepage'); } },
-                    ]);
-                  }}
-                  style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }]}
-                >
-                  <Text style={{ fontWeight: '700', color: '#0b84ff' }}>Sign Out</Text>
-                </Pressable>
-              ),
-            }}
-          />
-          <SafeAreaView style={styles.safe}>
-            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={80} style={{ flex: 1 }}>
-            <View style={styles.patientScreen}>
-              <Text style={styles.welcomeTop}>
-                Welcome back, {profile?.displayName || user.displayName || 'User'}!
-              </Text>
-
-              <View style={styles.topHalf}>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator
-                  style={styles.fullBleed}
-                  contentContainerStyle={styles.timelineScrollContent}
-                >
-                  <View style={styles.timelineContainer}>
-                    <RNView style={styles.timelineContent}>
-                      <RNView style={styles.timelineItem} />
-                      <RNView style={styles.timelineItem} />
-                      <RNView style={styles.timelineItem} />
-                      <RNView style={styles.timelineItem} />
-                      <RNView style={styles.timelineItem} />
-                      <RNView style={styles.timelineItem} />
-                    </RNView>
-                  </View>
-                </ScrollView>
-              </View>
-
-              {/* Bottom input section with segmented picker */}
-              <Text style={styles.sectionTitle}>Share how you're feeling today</Text>
-              <LLMInputSection initialPrompt="Please enter a brief description of your symptoms, concerns, or updates." />
-            </View>
-            </KeyboardAvoidingView>
-          </SafeAreaView>
-        </>
-      );
-    }
-
-
-    return (
-      <SafeAreaView style={styles.safe}>
+  } else if (user) {
+    // Provider or any non-patient, logged-in UI: show only the timeline
+    content = (
+      <>
+        <Stack.Screen
+          options={{
+            headerTitle: '',
+            headerBackVisible: false,
+            headerRight: () => (
+              <Pressable
+                onPress={() => {
+                  Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Sign Out', style: 'destructive', onPress: async () => { await signOut(); router.replace('/'); } },
+                  ]);
+                }}
+                style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }]}
+              >
+                <Text style={{ fontWeight: '700', color: '#0b84ff' }}>Sign Out</Text>
+              </Pressable>
+            ),
+          }}
+        />
+        <SafeAreaView edges={['left','right','bottom']} style={styles.safe}>
+          <RNView style={[styles.patientScreen, { paddingTop: Math.max(12, Math.floor(insets.top * 0.5)) }]}>
+            <Text style={styles.welcomeTop}>
+              Welcome back, {profile?.displayName || user.displayName || 'User'}!
+            </Text>
+            <RNView style={styles.topHalf}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.fullBleed} contentContainerStyle={styles.timelineScrollContent}>
+                <RNView style={styles.timelineCenterLineHorizontal} />
+                {Object.values(groups).map((day) => (
+                  <DayNode key={day.dateKey} day={day} onOpen={() => setExpandedDayId(day.dateKey)} />
+                ))}
+              </ScrollView>
+            </RNView>
+            {expandedDayId && groups[expandedDayId] && (
+              <ExpandedDayModal day={groups[expandedDayId]} onClose={() => setExpandedDayId(null)} />
+            )}
+          </RNView>
+        </SafeAreaView>
+      </>
+    );
+  } else {
+    // not logged in
+    content = (
+      <SafeAreaView edges={['left','right','bottom']} style={styles.safe}>
         <RNView style={styles.screen}>
           <RNView style={styles.card}>
-            <Text style={styles.logo}>MedTrak</Text>
-            {profile ? (
-              <>
-                <Text style={styles.roleText}>Role: Healthcare Provider</Text>
-                {profile.license && <Text style={styles.licenseText}>License: {profile.license}</Text>}
-                <Text style={styles.emailText}>Email: {profile.email}</Text>
-              </>
-            ) : (
-              <Text style={styles.roleText}>Loading profile...</Text>
-            )}
-            <Pressable
-              style={({ pressed }) => [styles.signOutButton, pressed && styles.btnPressed]}
-              onPress={() => {
-                Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'Sign Out', style: 'destructive', onPress: async () => { await signOut(); router.replace('/'); } },
-                ]);
-              }}
-            >
-              <Text style={styles.signOutText}>Sign Out</Text>
-            </Pressable>
-          </RNView>
-        </RNView>
-      </SafeAreaView>
-    );
-  }
-
-  // not logged in
-  return (
-    <SafeAreaView style={styles.safe}>
-      <RNView style={styles.screen}>
-        <RNView style={styles.card}>
           <Text style={styles.question}>Are you a patient or a provider?</Text>
 
           <RNView style={styles.buttonRow}>
@@ -406,9 +453,16 @@ export default function HomePage() {
             </Pressable>
           </RNView>
           <Text style={styles.small}>By continuing you agree to our Terms & Privacy.</Text>
+          </RNView>
         </RNView>
-      </RNView>
-    </SafeAreaView>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={headerHeight} style={{ flex: 1, backgroundColor: '#F5F5F5' }}>
+      {content}
+    </KeyboardAvoidingView>
   );
 } 
 
@@ -425,11 +479,11 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   welcomeTop: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '600',
     color: '#111',
     textAlign: 'left',
-    marginBottom: 8,
+    marginBottom: 4,
     paddingHorizontal: 20,
   },
   sectionTitle: {
@@ -437,7 +491,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#111',
     textAlign: 'left',
-    marginTop: 20,
+    marginTop: 8,
     marginBottom: 14,
     paddingHorizontal: 20,
   },
@@ -455,7 +509,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     alignItems: 'flex-start', // Align content to the top
     paddingTop: 25,
-    paddingBottom: 20,
+    paddingBottom: 10,
   },
   timelineCenterLineHorizontal: {
     position: 'absolute',
@@ -657,6 +711,29 @@ const styles = StyleSheet.create({
   assetImage: { width: '100%', height: 120, borderRadius: 8, resizeMode: 'cover' },
   assetText: { color: '#111' },
   assetCaption: { marginTop: 8, color: '#444', fontSize: 13 },
+  // Voice player styles reused from chat
+  playBtn: {
+    width: 30,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 15,
+    backgroundColor: '#fff',
+    marginRight: 8,
+  },
+  progressRail: {
+    width: 120,
+    height: 4,
+    backgroundColor: '#d7dde3',
+    borderRadius: 2,
+    overflow: 'hidden',
+    marginRight: 8,
+  },
+  progressFill: {
+    height: 4,
+    backgroundColor: '#0b84ff',
+  },
+  timeLabel: { color: '#111', fontSize: 12 },
 });
 
 /* Modal-specific styles (UPDATED) */
@@ -687,7 +764,7 @@ const modalStyles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: '#eee',
   },
-  headerDate: { fontSize: 18, fontWeight: '700', color: '#111' },
+  headerDate: { fontSize: 20, fontWeight: '800', color: '#111' },
 
   /* wrapper that lets us position fullVerticalLine absolutely inside it */
   bodyWrapper: {

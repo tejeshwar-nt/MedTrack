@@ -219,32 +219,44 @@ export async function fetchRecordsGroupedByDay(patientUid?: string): Promise<Rec
   const uid = patientUid ?? auth.currentUser?.uid;
   if (!uid) throw new Error('Not authenticated');
 
-  const q = query(
-    collection(db, 'records'),
-    where('patientUid', '==', uid),
-    orderBy('createdAt', 'asc')
-  );
-  const snap = await getDocs(q);
+  // Attempt indexed query (patientUid == uid, ordered by createdAt asc)
+  // If the index is missing, fall back to fetching without orderBy and sort in-memory.
+  let snap: any;
+  try {
+    const q = query(
+      collection(db, 'records'),
+      where('patientUid', '==', uid),
+      orderBy('createdAt', 'asc')
+    );
+    snap = await getDocs(q);
+  } catch (e: any) {
+    if (e?.code === 'failed-precondition') {
+      console.warn('[records] Missing composite index for (patientUid, createdAt). Falling back to client-side sort.');
+      const q2 = query(collection(db, 'records'), where('patientUid', '==', uid));
+      snap = await getDocs(q2);
+    } else {
+      throw e;
+    }
+  }
 
-  const byDay: Record<string, AnyRecord[]> = {};
-
-  snap.forEach(doc => {
+  // Read all docs, normalize createdAt, then group by day (sorted ascending by createdAt)
+  const all: AnyRecord[] = [];
+  snap.forEach((doc: any) => {
     const data: any = doc.data();
-    // Normalize createdAt to milliseconds
     const createdAt: number = typeof data.createdAt === 'number'
       ? data.createdAt
       : (typeof data.createdAt?.toMillis === 'function' ? data.createdAt.toMillis() : Date.now());
+    all.push({ ...(data as AnyRecord), id: doc.id, createdAt } as AnyRecord);
+  });
 
-    const record: AnyRecord = {
-      ...data,
-      id: doc.id,
-      createdAt,
-    } as AnyRecord;
+  all.sort((a, b) => (a.createdAt as number) - (b.createdAt as number));
 
-    const dayKey = new Date(createdAt).toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
+  const byDay: Record<string, AnyRecord[]> = {};
+  for (const record of all) {
+    const dayKey = new Date(record.createdAt as number).toISOString().slice(0, 10);
     if (!byDay[dayKey]) byDay[dayKey] = [];
     byDay[dayKey].push(record);
-  });
+  }
 
   return byDay;
 }
