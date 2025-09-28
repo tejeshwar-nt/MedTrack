@@ -93,7 +93,7 @@ async def transcribe_image(file: UploadFile = File(...)) -> str:
 		response = await query_llm(messages)
 
 		# Return the transcribed image
-		return {"transcription": response.choices[0].message.content}
+		return response.choices[0].message.content
 	finally:
 		if os.path.exists(temp_file_path):
 			os.remove(temp_file_path)
@@ -112,7 +112,7 @@ async def transcribe_audio(file: UploadFile = File(...)) -> str:
 		result = model.transcribe(f"temp_{file.filename}")
 
 		# Return the transcribed text
-		return {"transcription": result["text"]}
+		return result["text"]
 	finally:
 		if os.path.exists(temp_file_path):
 			os.remove(temp_file_path)
