@@ -57,6 +57,7 @@ function RootLayoutNav() {
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
           <Stack.Screen name="homepage" options={{ headerShown: true }} />
+          <Stack.Screen name="patientList" options={{ headerShown: true, title: 'Your Patients', headerBackVisible: false }} />
           <Stack.Screen name="signin" options={{ headerShown: false }} />
           <Stack.Screen name="signupPatient" options={{ headerShown: false }} />
           <Stack.Screen name="signupProvider" options={{ headerShown: false }} />

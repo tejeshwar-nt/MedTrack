@@ -6,9 +6,10 @@ import { useHeaderHeight } from '@react-navigation/elements';
 import { useAuth } from '../hooks/useAuth';
 import LLMInputSection from '../components/LLMInputSection';
 import { fetchRecordsGroupedByDay } from '../services/records';
+import { getProfile } from '../services/profile';
 import { AnyRecord } from '../models/record';
 import { Audio } from 'expo-av';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 
 /* --------------------
    Types
@@ -109,6 +110,79 @@ function DayNode({ day, onOpen }: { day: DayGroup; onOpen: () => void }) {
 
       {/* Date below the dot in Month Abbreviation Day format */}
       <Text style={styles.dayFullDate}>{day.fullDate}</Text>
+    </RNView>
+  );
+}
+
+/* --------------------
+   Analysis Dashboard (inline)
+   -------------------- */
+type Highlight = { name: string; value: string; trend?: { up?: boolean; value?: string } };
+type Basics = { symptomsConfirmed: number; totalLogs: number };
+type Trends = { label: string; values: number[]; color: string }[];
+type DashboardData = { highlights: Highlight[]; basics: Basics; trends: Trends };
+
+const MOCK_DASHBOARD_DATA: DashboardData = {
+  highlights: [
+    { name: 'Overall Trend', value: 'Improving', trend: { up: true, value: '+12%' } },
+    { name: 'Follow-up Responses', value: '8/10' },
+  ],
+  basics: { symptomsConfirmed: 5, totalLogs: 42 },
+  trends: [
+    { label: 'Pain', values: [2,3,4,3,2,2,1], color: '#ff6b6b' },
+    { label: 'Energy', values: [4,4,3,3,4,5,5], color: '#0b84ff' },
+  ],
+};
+
+function AnalysisDashboard({ data, containerStyle, scrollContentContainerStyle }: { data: DashboardData; containerStyle?: any; scrollContentContainerStyle?: any; }) {
+  return (
+    <RNView style={[dashboardStyles.mainContainer, containerStyle]}>
+      <ScrollView contentContainerStyle={[dashboardStyles.analysisScrollContent, scrollContentContainerStyle]} showsVerticalScrollIndicator={false}>
+        <Text style={dashboardStyles.sectionTitle}>Highlights</Text>
+        <RNView style={dashboardStyles.highlightsContainer}>
+          {data.highlights.map((h, idx) => (
+            <RNView key={idx} style={dashboardStyles.highlightCard}>
+              <Ionicons name={h.trend?.up ? 'trending-up' : 'information-circle'} style={dashboardStyles.highlightIcon} />
+              <RNView style={dashboardStyles.highlightTextWrapper}>
+                <Text style={dashboardStyles.highlightName}>{h.name}</Text>
+                <RNView style={dashboardStyles.trendRow}>
+                  <Text style={dashboardStyles.highlightValue}>{h.value}</Text>
+                  {h.trend?.value ? <Text style={{ color: h.trend?.up ? '#0b8a3b' : '#b00020' }}>{h.trend.value}</Text> : null}
+                </RNView>
+              </RNView>
+            </RNView>
+          ))}
+        </RNView>
+
+        <Text style={dashboardStyles.sectionTitle}>Basics</Text>
+        <RNView style={dashboardStyles.basicsContainer}>
+          <RNView style={dashboardStyles.basicStatCard}>
+            <Text style={dashboardStyles.basicValue}>{data.basics.symptomsConfirmed}</Text>
+            <Text style={dashboardStyles.basicLabel}>Symptoms</Text>
+          </RNView>
+          <RNView style={dashboardStyles.basicStatCard}>
+            <Text style={dashboardStyles.basicValue}>{data.basics.totalLogs}</Text>
+            <Text style={dashboardStyles.basicLabel}>Total Logs</Text>
+          </RNView>
+        </RNView>
+
+        <Text style={dashboardStyles.sectionTitle}>Trends</Text>
+        <RNView style={dashboardStyles.graphContainer}>
+          <Text style={dashboardStyles.axisLabelY}>Severity</Text>
+          <RNView style={dashboardStyles.chartArea}>
+            <Text style={{ color: '#666' }}>[Chart Placeholder]</Text>
+          </RNView>
+          <Text style={dashboardStyles.axisLabelX}>Time</Text>
+          <RNView style={dashboardStyles.legendRow}>
+            {data.trends.map((t, i) => (
+              <RNView key={i} style={dashboardStyles.legendItem}>
+                <RNView style={[dashboardStyles.legendDot, { backgroundColor: t.color }]} />
+                <Text style={dashboardStyles.legendText}>{t.label}</Text>
+              </RNView>
+            ))}
+          </RNView>
+        </RNView>
+      </ScrollView>
     </RNView>
   );
 }
@@ -237,6 +311,48 @@ function ExpandedDayModal({ day, onClose }: { day: DayGroup; onClose: () => void
 }
 
 /* --------------------
+   Provider Summary Section
+   -------------------- */
+function SummarySection() {
+  const [tab, setTab] = useState<'summary' | 'analysis'>('summary');
+  return (
+    <View style={styles.inputSection}>
+      <View style={styles.segmentedContainer}>
+        <Pressable
+          onPress={() => setTab('summary')}
+          style={({ pressed }) => [
+            styles.segment,
+            tab === 'summary' && styles.segmentActive,
+            pressed && { opacity: 0.9 },
+          ]}
+        >
+          <Text style={[styles.segmentLabel, tab === 'summary' && styles.segmentLabelActive]}>Summary</Text>
+        </Pressable>
+        <View style={styles.segmentDivider} />
+        <Pressable
+          onPress={() => setTab('analysis')}
+          style={({ pressed }) => [
+            styles.segment,
+            tab === 'analysis' && styles.segmentActive,
+            pressed && { opacity: 0.9 },
+          ]}
+        >
+          <Text style={[styles.segmentLabel, tab === 'analysis' && styles.segmentLabelActive]}>Analysis</Text>
+        </Pressable>
+      </View>
+
+      {tab === 'summary' ? (
+        <View style={styles.instructionsCard}>
+          <Text style={styles.instructionsText}>High-level patient summary will appear here.</Text>
+        </View>
+      ) : (
+        <AnalysisDashboard data={MOCK_DASHBOARD_DATA} containerStyle={{ marginHorizontal: 16 }} />
+      )}
+    </View>
+  );
+}
+
+/* --------------------
    Main screen
    -------------------- */
 export default function HomePage() {
@@ -248,25 +364,43 @@ export default function HomePage() {
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
 
-  // Track current patient id at top of page; required param for this view.
-  // If not provided, fall back to signed-in user's uid (e.g., provider viewing their own data).
+  // Track current patient id; providers must pass this via navigation param, patients default to self.
   const [currentpatientId, setCurrentpatientId] = useState<string | null>(
     (typeof params.currentpatientId === 'string' && params.currentpatientId.trim().length > 0)
       ? params.currentpatientId
-      : (user?.uid ?? null)
+      : null
   );
 
   // Dictionary of records grouped by day
   const [recordsByDay, setRecordsByDay] = useState<Record<string, AnyRecord[]>>({});
 
-  // If a provider is accessing, force currentpatientId to their own uid.
+  // For patients: default to their own uid; for providers: wait for selection
   useEffect(() => {
-    if (profile?.role === 'provider' && user?.uid) {
-      if (currentpatientId !== user.uid) setCurrentpatientId(user.uid);
-    } else if (!currentpatientId && user?.uid) {
+    if (profile?.role === 'patient' && !currentpatientId && user?.uid) {
       setCurrentpatientId(user.uid);
     }
   }, [profile?.role, user?.uid]);
+
+  // If provider landed on homepage without a selected patient, route to patientList
+  useEffect(() => {
+    if (profile?.role === 'provider' && !currentpatientId) {
+      router.replace({ pathname: '/patientList' as any });
+    }
+  }, [profile?.role, currentpatientId]);
+
+  // For providers with selected patient, fetch the patient's name to display in header area
+  useEffect(() => {
+    (async () => {
+      if (profile?.role !== 'provider') return;
+      if (!currentpatientId) return;
+      try {
+        const p = await getProfile(currentpatientId);
+        setViewedPatientName(p?.displayName || 'Patient');
+      } catch {
+        setViewedPatientName('Patient');
+      }
+    })();
+  }, [profile?.role, currentpatientId]);
 
   useEffect(() => {
     (async () => {
@@ -325,6 +459,7 @@ export default function HomePage() {
 
   const [expandedDayId, setExpandedDayId] = useState<string | null>(null);
   const groups = groupByDay(timeline); // keyed groups
+  const [viewedPatientName, setViewedPatientName] = useState<string>('');
 
   let content: React.ReactNode = null;
 
@@ -394,6 +529,14 @@ export default function HomePage() {
           options={{
             headerTitle: '',
             headerBackVisible: false,
+            headerLeft: () => (
+              <Pressable
+                onPress={() => router.replace({ pathname: '/patientList' as any })}
+                style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1, paddingHorizontal: 6 }]}
+              >
+                <Text style={{ fontWeight: '700', color: '#0b84ff' }}>Back</Text>
+              </Pressable>
+            ),
             headerRight: () => (
               <Pressable
                 onPress={() => {
@@ -411,9 +554,7 @@ export default function HomePage() {
         />
         <SafeAreaView edges={['left','right','bottom']} style={styles.safe}>
           <RNView style={[styles.patientScreen, { paddingTop: Math.max(12, Math.floor(insets.top * 0.5)) }]}>
-            <Text style={styles.welcomeTop}>
-              Welcome back, {profile?.displayName || user.displayName || 'User'}!
-            </Text>
+            <Text style={styles.welcomeTop}>{viewedPatientName || 'Patient'}</Text>
             <RNView style={styles.topHalf}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.fullBleed} contentContainerStyle={styles.timelineScrollContent}>
                 <RNView style={styles.timelineCenterLineHorizontal} />
@@ -422,6 +563,7 @@ export default function HomePage() {
                 ))}
               </ScrollView>
             </RNView>
+            <SummarySection />
             {expandedDayId && groups[expandedDayId] && (
               <ExpandedDayModal day={groups[expandedDayId]} onClose={() => setExpandedDayId(null)} />
             )}
@@ -604,7 +746,7 @@ const styles = StyleSheet.create({
 
   inputSection: {
     flex: 1,
-    paddingHorizontal: 0,
+    paddingHorizontal: 16,
     paddingTop: 12,
   },
   segmentedContainer: {
@@ -641,12 +783,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 6,
   },
   instructionsCard: {
-    flex: 1,
     marginTop: 12,
-    marginHorizontal: 16,
     backgroundColor: '#fff',
-    borderRadius: 16,
-    overflow: 'hidden',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
   },
   instructionsWrapper: {
     flex: 1,
@@ -734,6 +878,76 @@ const styles = StyleSheet.create({
     backgroundColor: '#0b84ff',
   },
   timeLabel: { color: '#111', fontSize: 12 },
+});
+
+// Inline dashboard styles used by AnalysisDashboard
+const dashboardStyles = StyleSheet.create({
+  tabContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 8,
+    marginTop: 10,
+    paddingHorizontal: 10,
+  },
+  tabItem: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 20,
+    alignItems: 'center',
+    marginHorizontal: 4,
+    backgroundColor: '#EAEAEA',
+    flexDirection: 'row',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  tabIcon: { fontSize: 18, marginRight: 5, color: '#333' },
+  tabLabel: { fontSize: 14, fontWeight: '600', color: '#333' },
+  mainContainer: {
+    width: '100%',
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    marginHorizontal: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  analysisScrollContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    paddingBottom: 40,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111',
+    marginTop: 15,
+    marginBottom: 10,
+  },
+  highlightsContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
+  highlightCard: { flex: 1, backgroundColor: '#F7F7F7', borderRadius: 10, padding: 12, marginHorizontal: 4, flexDirection: 'row', alignItems: 'center' },
+  highlightIcon: { fontSize: 24, marginRight: 8 },
+  highlightTextWrapper: { flex: 1 },
+  highlightName: { fontSize: 12, color: '#666', fontWeight: '500' },
+  trendRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
+  highlightValue: { fontSize: 16, fontWeight: '800', marginRight: 4 },
+  basicsContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
+  basicStatCard: { flex: 1, backgroundColor: '#E6F0FF', borderRadius: 10, padding: 15, marginHorizontal: 4, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  basicValue: { fontSize: 24, fontWeight: '900', color: '#0b84ff' },
+  basicLabel: { fontSize: 14, fontWeight: '600', color: '#333', maxWidth: '50%', textAlign: 'right' },
+  graphContainer: { padding: 8, backgroundColor: '#F7F7F7', borderRadius: 10, alignItems: 'center', paddingVertical: 20, marginHorizontal: 4 },
+  axisLabelY: { alignSelf: 'flex-start', marginLeft: 10, fontSize: 12, color: '#666', marginBottom: 5, transform: [{ translateY: -10 }] },
+  chartArea: { width: '100%', height: 200, backgroundColor: '#ffffff', borderRadius: 8, borderWidth: 1, borderColor: '#E0E0E0', justifyContent: 'center', marginBottom: 5 },
+  axisLabelX: { fontSize: 12, color: '#666', marginTop: 5 },
+  legendRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 15 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 10, marginVertical: 4 },
+  legendDot: { width: 8, height: 8, borderRadius: 4, marginRight: 4 },
+  legendText: { fontSize: 12, color: '#333' },
 });
 
 /* Modal-specific styles (UPDATED) */
