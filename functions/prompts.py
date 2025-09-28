@@ -78,3 +78,5 @@ Format your answer as:
 }}
 
 """
+
+image_prompt = "Analyze this image and describe the skin condition visible, focusing on redness. Don't supply any potential diagnosis, just the notable features observed. Keep it in under 10"
