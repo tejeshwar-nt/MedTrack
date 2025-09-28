@@ -62,15 +62,47 @@ function DayNode({ day, onOpen }: { day: DayGroup; onOpen: () => void }) {
     acc[it.type] = (acc[it.type] || 0) + 1;
     return acc;
   }, {});
-  const icons = Object.keys(counts).map((t) => assetIconForType(t as any)).join(' ');
+
+  const icons = Object.keys(counts).map((t) => assetIconForType(t as any));
+  const maxVis = 3;
+  const vis = icons.slice(0, maxVis);
+  const extra = Math.max(0, icons.length - maxVis);
 
   return (
     <View style={styles.timelineNodeGroup}>
-      {/* Node Container (Circle) - Clickable Area */}
+      {/* Node Container (Circle) - is a Clickable Area */}
       <Pressable onPress={onOpen} style={styles.dayNodeCircle}>
         <View style={styles.dayNodeInner}>
           <Text style={styles.dayCount}>{day.items.length}</Text>
-          <Text style={styles.dayIcons}>{icons}</Text>
+          
+          {vis.length === 1 && (
+            <View style={styles.iconSingleRow}>
+              <Text style={styles.iconText}>{vis[0]}</Text>
+            </View>
+          )}
+
+          {vis.length === 2 && (
+            <View style={styles.iconTopRow}>
+              <Text style={styles.iconText}>{vis[0]}</Text>
+              <Text style={styles.iconText}>{vis[1]}</Text>
+            </View>
+          )}
+
+          {vis.length >= 3 && (
+            <>
+              <View style={styles.iconTopRow}>
+                <Text style={styles.iconText}>{vis[0]}</Text>
+                <Text style={styles.iconText}>{vis[1]}</Text>
+              </View>
+              <View style={styles.iconBottomRow}>
+                {extra > 0 ? (
+                  <Text style={styles.iconPlus}>+{extra}</Text>
+                ) : (
+                  <Text style={styles.iconText}>{vis[2]}</Text>
+                )}
+              </View>
+            </>
+          )}
         </View>
       </Pressable>
 
@@ -218,7 +250,7 @@ export default function HomePage() {
                 onPress={() => {
                   Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
                     { text: 'Cancel', style: 'cancel' },
-                    { text: 'Sign Out', style: 'destructive', onPress: async () => { await signOut(); router.push('/'); } },
+                    { text: 'Sign Out', style: 'destructive', onPress: async () => { await signOut(); router.push('/signin'); } },
                   ]);
                 }}
                 style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }]}
@@ -261,6 +293,7 @@ export default function HomePage() {
     );
   }
 
+  //Same functionality as index.tsx so I jus ended up commenting out
   // Non-patient or not logged in UI (kept similar to your original)
   if (user) {
     // provider or other
@@ -283,7 +316,7 @@ export default function HomePage() {
               onPress={() => {
                 Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
                   { text: 'Cancel', style: 'cancel' },
-                  { text: 'Sign Out', style: 'destructive', onPress: async () => { await signOut(); router.replace('/'); } },
+                  { text: 'Sign Out', style: 'destructive', onPress: async () => { await signOut(); router.push('/signin'); } },
                 ]);
               }}
             >
@@ -322,7 +355,7 @@ export default function HomePage() {
       </View>
     </SafeAreaView>
   );
-}
+} 
 
 /* --------------------
    InputSection (keeps your previous segmented UI)
@@ -408,6 +441,40 @@ const styles = StyleSheet.create({
     right: 0,
     top: 115, // Positioned below the circle nodes
     zIndex: 0,
+  },
+    /* Icon layout inside the circle */
+  iconSingleRow: {
+    marginTop: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconTopRow: {
+    marginTop: 6,
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-around', // space icons across the width
+    alignItems: 'center',
+    paddingHorizontal: 6,
+  },
+  iconBottomRow: {
+    marginTop: 2,
+    width: '100%',
+    alignItems: 'center', // center the single bottom icon / +N
+    justifyContent: 'center',
+  },
+  iconText: {
+    fontSize: 14, // slightly smaller so 3 emojis fit comfortably
+    lineHeight: 18,
+  },
+  iconPlus: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0b4f8a',
+    backgroundColor: 'rgba(11,132,255,0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    overflow: 'hidden',
   },
   timelineNodeGroup: {
     width: 100, // Width for each node grouping
