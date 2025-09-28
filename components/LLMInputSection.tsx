@@ -138,15 +138,18 @@ export default function LLMInputSection({ initialPrompt, onRecordSaved }: { init
       setText('');
       try {
         await setFollowUpResponse(pendingFollowUps.recordId, current.index, answer);
+        // Advance to the next question only after the response is persisted
+        setPendingFollowUps(prev => {
+          if (!prev) return prev;
+          if (prev.questions.length === 0) return prev;
+          // Guard against racing with subscription updates
+          if (prev.questions[0].index !== current.index) return prev;
+          const rest = prev.questions.slice(1);
+          return rest.length > 0 ? { recordId: prev.recordId, questions: rest } : null;
+        });
       } catch (e) {
         console.warn('[followUps] failed to save response', e);
       }
-      // Remove the answered question and move to the next
-      setPendingFollowUps(prev => {
-        if (!prev) return prev;
-        const rest = prev.questions.slice(1);
-        return rest.length > 0 ? { recordId: prev.recordId, questions: rest } : null;
-      });
       requestAnimationFrame(() => {
         scrollRef.current?.scrollToEnd({ animated: true });
       });
@@ -167,10 +170,11 @@ export default function LLMInputSection({ initialPrompt, onRecordSaved }: { init
         followUpUnsubRef.current?.();
         followUpUnsubRef.current = subscribeToFollowUps(saved.id!, (fu) => {
           if (!fu || fu.length === 0) return;
-          const questions = fu.map((q, i) => ({ index: i, text: q.question })).filter(q => !!q.text);
-          if (questions.length > 0) {
-            setPendingFollowUps({ recordId: saved.id!, questions });
-          }
+          const questions = fu
+            .map((q, i) => ({ index: i, text: q.question, answered: !!q.userResponse }))
+            .filter(q => !!q.text && !q.answered)
+            .map(({ index, text }) => ({ index, text }));
+          if (questions.length > 0) setPendingFollowUps({ recordId: saved.id!, questions });
         });
       } catch (e: any) {
         console.warn('[records] failed to save text', e);
@@ -198,7 +202,10 @@ export default function LLMInputSection({ initialPrompt, onRecordSaved }: { init
           followUpUnsubRef.current?.();
           followUpUnsubRef.current = subscribeToFollowUps(saved.id!, (fu) => {
             if (!fu || fu.length === 0) return;
-            const questions = fu.map((q, i) => ({ index: i, text: q.question })).filter(q => !!q.text);
+            const questions = fu
+              .map((q, i) => ({ index: i, text: q.question, answered: !!q.userResponse }))
+              .filter(q => !!q.text && !q.answered)
+              .map(({ index, text }) => ({ index, text }));
             if (questions.length > 0) setPendingFollowUps({ recordId: saved.id!, questions });
           });
         } catch (e: any) {
@@ -237,7 +244,10 @@ export default function LLMInputSection({ initialPrompt, onRecordSaved }: { init
         followUpUnsubRef.current?.();
         followUpUnsubRef.current = subscribeToFollowUps(saved.id!, (fu) => {
           if (!fu || fu.length === 0) return;
-          const questions = fu.map((q, i) => ({ index: i, text: q.question })).filter(q => !!q.text);
+          const questions = fu
+            .map((q, i) => ({ index: i, text: q.question, answered: !!q.userResponse }))
+            .filter(q => !!q.text && !q.answered)
+            .map(({ index, text }) => ({ index, text }));
           if (questions.length > 0) setPendingFollowUps({ recordId: saved.id!, questions });
         });
         // update message uri to remote url
@@ -259,13 +269,13 @@ export default function LLMInputSection({ initialPrompt, onRecordSaved }: { init
   // When there are pending follow-ups, pose them one by one.
   useEffect(() => {
     if (!pendingFollowUps || pendingFollowUps.questions.length === 0) return;
-    // If the last message isn't the current question, append it.
     const current = pendingFollowUps.questions[0];
-    const last = messages[messages.length - 1];
-    if (!last || last.type !== 'text' || last.role !== 'assistant' || last.content !== current.text) {
-      setMessages(prev => [...prev, { id: `fu-${pendingFollowUps.recordId}-${current.index}`, role: 'assistant', type: 'text', content: current.text }]);
-    }
-  }, [pendingFollowUps, messages]);
+    const id = `fu-${pendingFollowUps.recordId}-${current.index}`;
+    // Only append this follow-up question once; keep previous ones in the chat
+    setMessages(prev => (prev.some(m => m.id === id)
+      ? prev
+      : [...prev, { id, role: 'assistant', type: 'text', content: current.text }]));
+  }, [pendingFollowUps]);
 
   // Follow-up answers are now handled via handleSend using the main composer
 
