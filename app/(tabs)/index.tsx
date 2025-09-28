@@ -67,8 +67,6 @@ export default function Home() {
     <SafeAreaView style={styles.safe}>
       <View style={styles.screen}>
         <View style={styles.card}>
-          <Text style={styles.logo}>🔎 MedTrak</Text>
-
           <Text style={styles.question}>Are you a patient or a provider?</Text>
 
           <RNView style={[styles.buttonRow]}>
