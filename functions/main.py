@@ -24,6 +24,10 @@ from tmp import api_key
 from pydantic import BaseModel, Field
 from typing import List, Optional, Any, Dict
 
+import uuid
+import firebase_admin
+from firebase_admin import credentials, storage
+
 sample_query = example_queries.dermatological_log
 
 OPENAI_KEY = api_key.KEY
@@ -69,6 +73,14 @@ def load_dependencies():
         print("WARNING: mock_data.csv not found. Patient-related endpoints will not work.")
         # Define columns to avoid errors if the file is missing
         df = pd.DataFrame(columns=['patientUid', 'createdAt', 'userText', 'followUps?'])
+        
+	# Use the bucket name you found
+    bucket_name = "medtrak-9d6c3.firebasestorage.app" 
+    
+    firebase_admin.initialize_app(options={
+        'storageBucket': bucket_name
+    })
+    print("Firebase Admin SDK initialized.")
 
 # ------------------------------------------------------------------------
 
@@ -342,7 +354,29 @@ def plot_summary(summarized: dict):
     plt.close()
     buffer.seek(0)
 
-    return Response(content=buffer.getvalue(), media_type="image/png")
+    try:
+        # 1. Get a reference to the storage bucket
+        bucket = storage.bucket()
+
+        # 2. Create a unique filename to avoid overwriting files
+        destination_blob_name = f"plots/{uuid.uuid4()}.png"
+        
+        # 3. Create a new blob and upload the file from the in-memory buffer
+        blob = bucket.blob(destination_blob_name)
+        blob.upload_from_string(
+            buffer.getvalue(),
+            content_type="image/png"
+        )
+        
+        # 4. Make the file publicly accessible
+        blob.make_public()
+
+        # 5. Return the public URL in a JSON response
+        return blob.public_url
+
+    except Exception as e:
+        # Return an error response if the upload fails
+        return Response(content=f"Error uploading to Firebase: {e}", status_code=500)
 
 # ------------------------------------------------------------------------
 

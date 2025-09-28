@@ -141,11 +141,11 @@ export async function transcribeAudioToText(audioUrl: string): Promise<string | 
     // 4. Get the transcribed text from the response
     const transcribedText = await apiResponse.text(); // Your endpoint returns plain text
     
-    console.log('[llm] Transcription successful.');
+    console.log('[llm] Transcription successful. Text:', (transcribedText ?? '').slice(0, 500));
     return transcribedText;
 
   } catch (error) {
-    console.error('Error during audio transcription:', error);
+    // console.error('Error during audio transcription:', error);
     return null; // Return null on failure
   }
 }
@@ -201,18 +201,18 @@ export async function describeImageWithLlm(imageUrl: string): Promise<string | n
 
     if (!apiResponse.ok) {
       const errorBody = await apiResponse.text();
-      console.error("Server responded with an error:", errorBody);
+      // console.error("Server responded with an error:", errorBody);
       throw new Error(`API error! status: ${apiResponse.status}`);
     }
 
     // 4. Get the descriptive text from the response
     const descriptionText = await apiResponse.text(); // Your endpoint returns a string
     
-    console.log('[llm] Image description successful.');
+    console.log('[llm] Image description successful. Text:', (descriptionText ?? '').slice(0, 500));
     return descriptionText;
 
   } catch (error) {
-    console.error('Error during image description:', error);
+    // console.error('Error during image description:', error);
     return null; // Return null on failure
   }
 }
@@ -235,7 +235,7 @@ export function describeAndAttachLlmText(recordId: string, imageUrl: string, use
         console.log('[llm] follow-ups stored for', recordId);
       }
     } catch (e) {
-      console.warn('[llm] image description failed', e);
+      // console.warn('[llm] image description failed', e);
     }
   })();
 }
@@ -263,7 +263,7 @@ export async function setFollowUpResponse(recordId: string, index: number, userR
 }
 
 // --- Follow-up questions for text (placeholder) ---
-export async function generateFollowUpsForText(userText: string): Promise<string[] | null> {
+export async function generateFollowUpsForText(userText: string): Promise<FollowUpQuestion[] | null> {
   console.log('[llm] Generating follow-ups for text length', userText?.length ?? 0);
   
   const apiEndpoint = 'https://backend-apis-1039832299695.us-central1.run.app/followup';
@@ -288,9 +288,13 @@ export async function generateFollowUpsForText(userText: string): Promise<string
     
     // Parse the JSON response which should be a list of strings
     const followupQuestions: string[] = await response.json();
+    // Map to FollowUpQuestion objects
+    const mapped: FollowUpQuestion[] = (followupQuestions || [])
+      .filter((q) => typeof q === 'string' && q.trim().length > 0)
+      .map((q) => ({ question: q }));
     
-    console.log('[llm] Follow-up questions generated successfully.');
-    return followupQuestions;
+    console.log('[llm] Follow-up questions generated successfully. Questions:', mapped);
+    return mapped;
 
   } catch (error) {
     console.error('Error generating follow-up questions:', error);
@@ -323,15 +327,16 @@ export async function fetchRecordsGroupedByDay(patientUid?: string): Promise<Rec
   // If the index is missing, fall back to fetching without orderBy and sort in-memory.
   let snap: any;
   try {
+    // Prefer serverTime for ordering (falls back below if index missing)
     const q = query(
       collection(db, 'records'),
       where('patientUid', '==', uid),
-      orderBy('createdAt', 'asc')
+      orderBy('serverTime', 'asc')
     );
     snap = await getDocs(q);
   } catch (e: any) {
     if (e?.code === 'failed-precondition') {
-      console.warn('[records] Missing composite index for (patientUid, createdAt). Falling back to client-side sort.');
+      console.warn('[records] Missing composite index for (patientUid, serverTime). Falling back to client-side sort.');
       const q2 = query(collection(db, 'records'), where('patientUid', '==', uid));
       snap = await getDocs(q2);
     } else {
@@ -343,10 +348,16 @@ export async function fetchRecordsGroupedByDay(patientUid?: string): Promise<Rec
   const all: AnyRecord[] = [];
   snap.forEach((doc: any) => {
     const data: any = doc.data();
-    const createdAt: number = typeof data.createdAt === 'number'
-      ? data.createdAt
-      : (typeof data.createdAt?.toMillis === 'function' ? data.createdAt.toMillis() : Date.now());
-    all.push({ ...(data as AnyRecord), id: doc.id, createdAt } as AnyRecord);
+    // Prefer serverTime; fall back to createdAt
+    const serverTimeMs: number | null = typeof data.serverTime === 'number'
+      ? data.serverTime
+      : (typeof data.serverTime?.toMillis === 'function' ? data.serverTime.toMillis() : null);
+    const createdAtMs: number = serverTimeMs ?? (
+      typeof data.createdAt === 'number'
+        ? data.createdAt
+        : (typeof data.createdAt?.toMillis === 'function' ? data.createdAt.toMillis() : Date.now())
+    );
+    all.push({ ...(data as AnyRecord), id: doc.id, createdAt: createdAtMs } as AnyRecord);
   });
 
   all.sort((a, b) => (a.createdAt as number) - (b.createdAt as number));
@@ -371,7 +382,7 @@ export async function fetchRecordsForPatient(patientUid: string, order: 'asc' | 
     const q = query(
       collection(db, 'records'),
       where('patientUid', '==', patientUid),
-      orderBy('createdAt', order)
+      orderBy('serverTime', order)
     );
     snap = await getDocs(q);
   } catch (e: any) {
@@ -387,9 +398,14 @@ export async function fetchRecordsForPatient(patientUid: string, order: 'asc' | 
   const out: AnyRecord[] = [];
   snap.forEach((d: any) => {
     const raw: any = d.data();
-    const createdAt: number = typeof raw.createdAt === 'number'
-      ? raw.createdAt
-      : (typeof raw.createdAt?.toMillis === 'function' ? raw.createdAt.toMillis() : Date.now());
+    const serverTimeMs: number | null = typeof raw.serverTime === 'number'
+      ? raw.serverTime
+      : (typeof raw.serverTime?.toMillis === 'function' ? raw.serverTime.toMillis() : null);
+    const createdAt: number = serverTimeMs ?? (
+      typeof raw.createdAt === 'number'
+        ? raw.createdAt
+        : (typeof raw.createdAt?.toMillis === 'function' ? raw.createdAt.toMillis() : Date.now())
+    );
 
     const rec: AnyRecord = { ...(raw as AnyRecord), id: d.id, createdAt } as AnyRecord;
     // Ensure JSON-safe (remove any Firestore Timestamp/FieldValue artifacts)
