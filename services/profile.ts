@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import type { AnyProfile, PatientProfile, ProviderProfile } from '../models/userProfiles';
 
@@ -29,6 +29,23 @@ export async function upsertProviderProfile(profile: ProviderProfile): Promise<v
     console.log('Provider profile saved successfully');
   } catch (error) {
     console.log('upsertProviderProfile error:', error);
+    throw error;
+  }
+}
+
+export async function listPatients(): Promise<PatientProfile[]> {
+  try {
+    const q = query(collection(db, COLLECTION), where('role', '==', 'patient'));
+    const snap = await getDocs(q);
+    const out: PatientProfile[] = [];
+    snap.forEach((d) => {
+      const data = d.data() as any;
+      // Only keep expected fields
+      out.push({ uid: data.uid ?? d.id, role: 'patient', displayName: data.displayName ?? 'Patient', email: data.email ?? '' });
+    });
+    return out;
+  } catch (error) {
+    console.log('listPatients error:', error);
     throw error;
   }
 }

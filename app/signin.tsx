@@ -15,6 +15,8 @@ import { SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import { View, Text } from '@/components/Themed';
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '../hooks/useAuth';
+import { getProfile } from '../services/profile';
+import { auth } from '../config/firebase';
 
 export default function Signin() {
   const router = useRouter();
@@ -81,8 +83,22 @@ export default function Signin() {
                 try {
                   setLoading(true);
                   await signIn(email.trim(), password);
-                  // Go directly to homepage root
-                  router.replace('/homepage');
+                  // Route based on role
+                  const uid = auth.currentUser?.uid;
+                  if (uid) {
+                    try {
+                      const p = await getProfile(uid);
+                      if (p?.role === 'provider') {
+                        router.replace('/patientList');
+                      } else {
+                        router.replace('/homepage');
+                      }
+                    } catch {
+                      router.replace('/homepage');
+                    }
+                  } else {
+                    router.replace('/homepage');
+                  }
                 } catch (e: any) {
                   setError(e?.message ?? 'Failed to sign in');
                 } finally {
