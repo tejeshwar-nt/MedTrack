@@ -12,6 +12,13 @@ export type FollowUpQuestion = {
   userResponse?: string;
 };
 
+/** The structure of a Firestore Timestamp object after JSON serialization */
+export type FirestoreTimestamp = {
+  type: "firestore/timestamp/1.0";
+  seconds: number;
+  nanoseconds: number;
+};
+
 export type BaseRecord = {
   /** UID of the patient this record belongs to */
   patientUid: string;
@@ -22,7 +29,9 @@ export type BaseRecord = {
   /** Optional Firestore document id if you choose to store it */
   id?: string;
   /** LLM-generated follow-up questions and their optional user responses */
-  followUps?: FollowUpQuestion[];
+  followUps?: FollowUpQuestion[] | null;
+  /** Optional server timestamp from Firestore for data consistency */
+  serverTime?: FirestoreTimestamp;
 };
 
 export type TextRecord = BaseRecord & {
@@ -60,7 +69,7 @@ export function createTextRecord(init: {
   userText: string;
   createdAt?: number;
   id?: string;
-  followUps?: FollowUpQuestion[];
+  followUps?: FollowUpQuestion[] | null;
 }): TextRecord {
   return {
     patientUid: init.patientUid,
@@ -78,7 +87,7 @@ export function createImageRecord(init: {
   userText: string;
   createdAt?: number;
   id?: string;
-  followUps?: FollowUpQuestion[];
+  followUps?: FollowUpQuestion[] | null;
 }): ImageRecord {
   return {
     patientUid: init.patientUid,
@@ -97,7 +106,7 @@ export function createVoiceRecord(init: {
   createdAt?: number;
   audioDurationSec?: number;
   id?: string;
-  followUps?: FollowUpQuestion[];
+  followUps?: FollowUpQuestion[] | null;
 }): VoiceRecord {
   return {
     patientUid: init.patientUid,
@@ -114,3 +123,4 @@ export function createVoiceRecord(init: {
 export const isTextRecord = (r: AnyRecord): r is TextRecord => r.kind === 'text';
 export const isImageRecord = (r: AnyRecord): r is ImageRecord => r.kind === 'image';
 export const isVoiceRecord = (r: AnyRecord): r is VoiceRecord => r.kind === 'voice';
+
