@@ -67,7 +67,7 @@ def encode_image_to_base64(img_path: str):
 	return encoded_image
 
 @app.post("/transcribe_image")
-async def transcribe_image(file: UploadFile = File(...)):
+async def transcribe_image(file: UploadFile = File(...)) -> str:
 	temp_file_path = f"temp_{file.filename}"
 	try:
 		# Save the uploaded file temporarily
@@ -103,7 +103,7 @@ async def transcribe_image(file: UploadFile = File(...)):
 # ------------------------------------------------------------------------
 
 @app.post("/transcribe_audio")
-async def transcribe_audio(file: UploadFile = File(...)):
+async def transcribe_audio(file: UploadFile = File(...)) -> str:
 	temp_file_path = f"temp_{file.filename}"
 	try:
 		# Save the uploaded file temporarily
@@ -122,8 +122,8 @@ async def transcribe_audio(file: UploadFile = File(...)):
 # ------------------------------------------------------------------------
 
 @app.post("/followup")
-async def followup_question_generator(records: list[str]):
-	prompt_1 = prompts.prompt_template_1.format(record=sample_query)
+async def followup_question_generator(records: str) -> list[str]:
+	prompt_1 = prompts.prompt_template_1.format(record=records)
 
 	messages= [
 		{"role": "user", "content": prompt_1}
@@ -140,9 +140,9 @@ async def followup_question_generator(records: list[str]):
 
 	return followup_questions
 
-@app.get("/sample_response")
-async def patient_sample_response():
-	patient_prompt = prompts.example_patient_prompt.format(record = sample_query, followup_questions = await followup_question_generator())
+@app.post("/sample_response")
+async def patient_sample_response(records: str, questions: str) -> dict:
+	patient_prompt = prompts.example_patient_prompt.format(record = records, followup_questions = questions)
 
 	messages = [
 		{"role": "user", "content": patient_prompt}
@@ -159,9 +159,9 @@ async def patient_sample_response():
 
 	return followup_answers
 
-@app.get("/summarize")
-async def summarize_recods():
-	prompt_2 = prompts.prompt_template_2.format(record=sample_query, followup_answers = await patient_sample_response())
+@app.post("/summarize")
+async def summarize_recods(records: str, followup_and_response: dict) -> dict:
+	prompt_2 = prompts.prompt_template_2.format(record=records, followup_answers = followup_and_response)
 
 	messages = [
 		{"role": "user", "content": prompt_2}
@@ -175,6 +175,12 @@ async def summarize_recods():
 	data2 = json.loads(content2)
 
 	return data2
+
+@app.get("/test_record_assistant")
+async def test_record_assistant():
+	followup_questions = await followup_question_generator(sample_query)
+	question_response = await patient_sample_response(sample_query, followup_questions)
+	return await summarize_recods(sample_query, question_response)
 
 # ------------------------------------------------------------------------
 
