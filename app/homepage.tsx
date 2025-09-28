@@ -149,8 +149,8 @@ function ExpandedDayModal({ day, onClose }: { day: DayGroup; onClose: () => void
                     {it.type === 'voice' && it.uri ? (
                       <View style={modalStyles.assetCard}>
                         <View style={modalStyles.assetContent}>
-                          <Text style={{ fontWeight: '700' }}>🎙️ Voice recording</Text>
-                          <Text style={{ color: '#666', fontSize: 12 }}>{it.uri.split('/').pop()}</Text>
+                          <Text style={{ fontWeight: '700000' }}>🎙️ Voice recording</Text>
+                          <Text style={{ color: '#666666', fontSize: 12 }}>{it.uri.split('/').pop()}</Text>
                         </View>
                       </View>
                     ) : null}
@@ -193,6 +193,13 @@ export default function HomePage() {
     { id: '4', type: 'text', text: 'Temperature check: 99.8°F', createdAt: Date.now() - 1000 * 60 * 60 * 24 + 1000 * 60 * 45 },
     // Group 3: Today
     { id: '5', type: 'image', uri: 'https://picsum.photos/300/200?5', text: 'New photo of left arm.', createdAt: Date.now() - 1000 * 60 * 60 * 2 },
+        { id: '5', type: 'image', uri: 'https://picsum.photos/300/200?5', text: 'New photo of left arm.', createdAt: Date.now() - 1000 * 60 * 60 * 2 },
+    { id: '6', type: 'image', uri: 'https://picsum.photos/300/200?5', text: 'New photo of left arm.', createdAt: Date.now() - 1000 * 60 * 60 * 2 },
+    { id: '7', type: 'image', uri: 'https://picsum.photos/300/200?5', text: 'New photo of left arm.', createdAt: Date.now() - 1000 * 60 * 60 * 2 },
+    { id: '8', type: 'image', uri: 'https://picsum.photos/300/200?5', text: 'New photo of left arm.', createdAt: Date.now() - 1000 * 60 * 60 * 2 },
+    { id: '9', type: 'image', uri: 'https://picsum.photos/300/200?5', text: 'New photo of left arm.', createdAt: Date.now() - 1000 * 60 * 60 * 2 },
+    { id: '10', type: 'image', uri: 'https://picsum.photos/300/200?5', text: 'New photo of left arm.', createdAt: Date.now() - 1000 * 60 * 60 * 2 },
+    { id: '11', type: 'image', uri: 'https://picsum.photos/300/200?5', text: 'New photo of left arm.', createdAt: Date.now() - 1000 * 60 * 60 * 2 },
   ]);
 
   const [expandedDayId, setExpandedDayId] = useState<string | null>(null);
@@ -211,7 +218,7 @@ export default function HomePage() {
                 onPress={() => {
                   Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
                     { text: 'Cancel', style: 'cancel' },
-                    { text: 'Sign Out', style: 'destructive', onPress: async () => { await signOut(); router.replace('/homepage'); } },
+                    { text: 'Sign Out', style: 'destructive', onPress: async () => { await signOut(); router.push('/'); } },
                   ]);
                 }}
                 style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }]}
