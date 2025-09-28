@@ -8,6 +8,8 @@ import json
 
 import prompts
 import example_queries
+import matplotlib.pyplot as plt
+import numpy as np
 
 sample_query = example_queries.dermatological_example
 
@@ -141,6 +143,8 @@ async def _followup_question_generator(records: str) -> list[str]:
 async def followup_question_generator(records: str) -> list[str]:
 	return await _followup_question_generator(records)
 
+# ------------------------------------------------------------------------
+
 async def _patient_sample_response(records: str, questions: str) -> dict:
 	patient_prompt = prompts.example_patient_prompt.format(record = records, followup_questions = questions)
 
@@ -163,7 +167,9 @@ async def _patient_sample_response(records: str, questions: str) -> dict:
 async def patient_sample_response(records: str, questions: str) -> dict:
 	return await _patient_sample_response(records, questions)
 
-async def _summarize_recods(records: str, followup_and_response: dict) -> dict:
+# ------------------------------------------------------------------------
+
+async def _summarize_records(records: str, followup_and_response: dict) -> dict:
 	prompt_2 = prompts.prompt_template_2.format(record=records, followup_answers = followup_and_response)
 
 	messages = [
@@ -180,14 +186,64 @@ async def _summarize_recods(records: str, followup_and_response: dict) -> dict:
 	return data2
 
 @app.post("/summarize")
-async def summarize_recods(records: str, followup_and_response: dict) -> dict:
-	return await _summarize_recods(records, followup_and_response)
+async def summarize_records(records: str, followup_and_response: dict) -> dict:
+	return await _summarize_records(records, followup_and_response)
+
+# ------------------------------------------------------------------------
 
 @app.get("/test_record_assistant")
 async def test_record_assistant():
 	followup_questions = await _followup_question_generator(sample_query)
 	question_response = await _patient_sample_response(sample_query, followup_questions)
-	return await _summarize_recods(sample_query, question_response)
+	return await _summarize_records(sample_query, question_response)
+
+# ------------------------------------------------------------------------
+
+@app.post("/plot_summary")
+def plot_summary(summarized: dict):
+	importance_data = summarized['importance']
+
+	symptom_list = list(importance_data.keys())
+	score_list = []
+	for symptom in symptom_list:
+		score_list.append(importance_data[symptom]['score'])
+
+	# print(symptom_list,score_list)
+
+	num_days = len(score_list[0])
+
+	# Convert to numpy array for easy stacking
+	logs = []
+	for i in range(num_days):
+		logs.append(f'Day {i+1}')
+
+	scores_arr = np.array(score_list).T  # shape: (num_symptoms, num_days)
+	# print(scores_arr.shape)
+
+	# Colors for each category
+	colors = ["#a6cee3",  # light blue
+				"#fdbf6f",  # soft orange
+				"#b2df8a",  # light green
+				"#fb9a99",  # soft red/pink
+				"#cab2d6",  # light purple
+				"#ffff99"]  # pale yellow
+
+	# Plot stacked bars
+	plt.figure(figsize=(10,3))
+	bottom = np.zeros(num_days)  # initialize bottom positions
+
+	for i in range(len(symptom_list)):
+		plt.bar(logs, scores_arr[:, i], bottom=bottom, color=colors[i], label=symptom_list[i])
+		bottom += scores_arr[:,i]  # update bottom for next layer
+
+	plt.ylabel("Score")
+	plt.title("Stacked Symptom Scores")
+	plt.legend()
+	
+
+@app.get("/test_plot")
+async def test_plot():
+	plot_summary(await test_record_assistant())
 
 # ------------------------------------------------------------------------
 
