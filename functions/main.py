@@ -13,9 +13,13 @@ sample_query = example_queries.dermatological_example
 
 from openai import OpenAI
 
-OPENAI_KEY = "YOUR_API_KEY"
+# OPENAI_KEY = "YOUR_API_KEY"
+
+from tmp import api_key
+OPENAI_KEY = api_key.KEY
+
 model_type = "gpt-4o-mini"
-token_limit = 100
+token_limit = 500
 image_prompt = "Analyze this image and describe the skin condition visible, focusing on redness. Don't supply any potential diagnosis, just the notable features observed."
 
 app = FastAPI()
@@ -119,9 +123,7 @@ async def transcribe_audio(file: UploadFile = File(...)):
 
 @app.get("/followup")
 async def followup_question_generator():
-	record = sample_query
-
-	prompt_1 = prompts.prompt_template_1.format(record=record)
+	prompt_1 = prompts.prompt_template_1.format(record=sample_query)
 
 	messages= [
 		{"role": "user", "content": prompt_1}
@@ -137,6 +139,25 @@ async def followup_question_generator():
 	followup_questions = data1['followup_questions']
 
 	return followup_questions
+
+@app.get("/sample_response")
+async def patient_sample_response():
+	patient_prompt = prompts.example_patient_prompt.format(record = sample_query, followup_questions = await followup_question_generator())
+
+	messages = [
+		{"role": "user", "content": patient_prompt}
+	]
+
+	response = await query_llm(messages, temperature=0.3)
+
+	# print(response.choices[0].message.content)
+
+	patient_content = response.choices[0].message.content
+	patient_data = json.loads(patient_content)
+
+	followup_answers = patient_data
+
+	return followup_answers
 
 # ------------------------------------------------------------------------
 
