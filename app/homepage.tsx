@@ -5,7 +5,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useHeaderHeight } from '@react-navigation/elements';
 import { useAuth } from '../hooks/useAuth';
 import LLMInputSection from '../components/LLMInputSection';
-import { fetchRecordsGroupedByDay, fetchRecordsForPatient } from '../services/records';
+import { fetchRecordsGroupedByDay } from '../services/records';
 import { getProfile } from '../services/profile';
 import { AnyRecord } from '../models/record';
 import { Audio } from 'expo-av';
@@ -124,13 +124,13 @@ type DashboardData = { highlights: Highlight[]; basics: Basics; trends: Trends }
 
 const MOCK_DASHBOARD_DATA: DashboardData = {
   highlights: [
-    { name: 'Overall Trend', value: 'Improving', trend: { up: true, value: '+12%' } },
-    { name: 'Follow-up Responses', value: '8/10' },
+    { name: 'Headache', value: 'Improving', trend: { up: false, value: '-17%' } },
+    { name: 'Fatigue', value: 'Worsening', trend: { up: true, value: '+17%' } },
   ],
   basics: { symptomsConfirmed: 5, totalLogs: 42 },
   trends: [
-    { label: 'Pain', values: [2,3,4,3,2,2,1], color: '#ff6b6b' },
-    { label: 'Energy', values: [4,4,3,3,4,5,5], color: '#0b84ff' },
+    { label: 'Headache', values: [3,2,2,1,1,0,0], color: '#ff6b6b' },
+    { label: 'Fatigue', values: [1,1,2,2,3,3,4], color: '#0b84ff' },
   ],
 };
 
@@ -313,6 +313,79 @@ function ExpandedDayModal({ day, onClose }: { day: DayGroup; onClose: () => void
 /* --------------------
    Provider Summary Section
    -------------------- */
+// Types for summary dashboard
+type Symptom = { name: string; intensity: string };
+type InfoRow = { label: string; value: string };
+type SummaryDashboardData = {
+  mainSymptoms: Symptom[];
+  info: InfoRow[];
+  possibleConditions: string[];
+};
+
+const MOCK_SUMMARY_DATA: SummaryDashboardData = {
+  mainSymptoms: [
+    { name: 'Rash', intensity: 'Medium' },
+    { name: 'Itching', intensity: 'Medium' },
+    { name: 'Dry Skin', intensity: 'Low' },
+    { name: 'Swelling', intensity: 'High' },
+  ],
+  info: [
+    { label: 'Relevance', value: 'Dermatological' },
+    { label: 'Onset', value: '5 days' },
+    { label: 'Severity', value: 'Moderate, worsening' },
+  ],
+  possibleConditions: [
+    'Eczema',
+    'Contact Dermatitis',
+    'Psoriasis',
+    'Urticaria',
+    'Fungal Infection',
+  ],
+};
+
+type SummaryDashboardProps = {
+  data: SummaryDashboardData;
+  containerStyle?: any;
+};
+
+function SummaryDashboard({ data, containerStyle }: SummaryDashboardProps) {
+  return (
+    <View style={[summaryDashboardStyles.mainContainer, containerStyle]}>
+      <Text style={summaryDashboardStyles.sectionTitle}>Main Symptoms</Text>
+      <ScrollView style={{ maxHeight: 140 }} contentContainerStyle={{ paddingVertical: 4 }} showsVerticalScrollIndicator={false}>
+        {data.mainSymptoms.map((symptom: Symptom, idx: number) => (
+          <View key={idx} style={summaryDashboardStyles.symptomCard}>
+            <Text style={summaryDashboardStyles.symptomName}>{symptom.name}</Text>
+            <View style={summaryDashboardStyles.intensityTab}>
+              <Text style={summaryDashboardStyles.intensityText}>{symptom.intensity}</Text>
+            </View>
+          </View>
+        ))}
+      </ScrollView>
+      <View style={summaryDashboardStyles.infoRowContainer}>
+        <View style={summaryDashboardStyles.infoColLeft}>
+          {data.info.map((item: InfoRow, idx: number) => (
+            <View key={idx} style={summaryDashboardStyles.infoRow}><Text style={summaryDashboardStyles.infoLabel}>{item.label}</Text></View>
+          ))}
+        </View>
+        <View style={summaryDashboardStyles.infoColRight}>
+          {data.info.map((item: InfoRow, idx: number) => (
+            <View key={idx} style={summaryDashboardStyles.infoRow}><Text style={summaryDashboardStyles.infoValue}>{item.value}</Text></View>
+          ))}
+        </View>
+      </View>
+      <Text style={summaryDashboardStyles.sectionTitle}>Possible Conditions</Text>
+      <ScrollView style={{ maxHeight: 120 }} contentContainerStyle={{ paddingVertical: 4 }} showsVerticalScrollIndicator={false}>
+        {data.possibleConditions.map((cond: string, idx: number) => (
+          <View key={idx} style={summaryDashboardStyles.conditionCard}>
+            <Text style={summaryDashboardStyles.conditionText}>{cond}</Text>
+          </View>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
 function SummarySection() {
   const [tab, setTab] = useState<'summary' | 'analysis'>('summary');
   return (
@@ -340,17 +413,109 @@ function SummarySection() {
           <Text style={[styles.segmentLabel, tab === 'analysis' && styles.segmentLabelActive]}>Analysis</Text>
         </Pressable>
       </View>
-
       {tab === 'summary' ? (
-        <View style={styles.instructionsCard}>
-          <Text style={styles.instructionsText}>High-level patient summary will appear here.</Text>
-        </View>
+        <SummaryDashboard data={MOCK_SUMMARY_DATA} containerStyle={{ marginHorizontal: 16 }} />
       ) : (
-        <AnalysisDashboard data={MOCK_DASHBOARD_DATA} containerStyle={{ marginHorizontal: 16 }} />
+        <AnalysisDashboard data={MOCK_DASHBOARD_DATA} containerStyle={{ marginHorizontal: 16 }} scrollContentContainerStyle={{}} />
       )}
     </View>
   );
 }
+// Styles for the new summary dashboard
+const summaryDashboardStyles = StyleSheet.create({
+  mainContainer: {
+    width: '100%',
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    marginHorizontal: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    elevation: 4,
+    padding: 16,
+    marginTop: 10,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111',
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  symptomCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#e6f7ff',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 8,
+    position: 'relative',
+  },
+  symptomName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#0b4f8a',
+    flex: 1,
+  },
+  intensityTab: {
+    backgroundColor: '#0b84ff',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 2,
+    alignSelf: 'flex-start',
+    marginLeft: 8,
+  },
+  intensityText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  infoRowContainer: {
+    flexDirection: 'row',
+    marginTop: 10,
+    marginBottom: 10,
+    backgroundColor: '#f2f2f2',
+    borderRadius: 10,
+    padding: 10,
+  },
+  infoColLeft: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  infoColRight: {
+    flex: 1,
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  infoLabel: {
+    fontSize: 15,
+    color: '#333',
+    fontWeight: '600',
+  },
+  infoValue: {
+    fontSize: 15,
+    color: '#0b4f8a',
+    fontWeight: '700',
+  },
+  conditionCard: {
+    backgroundColor: '#f7fbff',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 8,
+  },
+  conditionText: {
+    fontSize: 15,
+    color: '#0b4f8a',
+    fontWeight: '600',
+  },
+});
 
 /* --------------------
    Main screen
@@ -511,41 +676,7 @@ export default function HomePage() {
 
             <Text style={styles.sectionTitle}>Share how you're feeling today</Text>
             {/* InputSection (Media Input UI) */}
-            <LLMInputSection
-              initialPrompt="Please enter a brief description of your symptoms, concerns, or updates."
-              onRecordSaved={() => {
-                // Re-fetch records to sync timeline for patients
-                (async () => {
-                  try {
-                    const pid = currentpatientId || user?.uid || null;
-                    if (!pid) return;
-                    const list = await fetchRecordsForPatient(pid, 'asc');
-                    // Update recordsByDay for completeness
-                    const byDay: Record<string, AnyRecord[]> = {};
-                    list.forEach((r: any) => {
-                      const createdAt = typeof r.createdAt === 'number' ? r.createdAt : Date.now();
-                      const dayKey = new Date(createdAt).toISOString().slice(0, 10);
-                      if (!byDay[dayKey]) byDay[dayKey] = [];
-                      byDay[dayKey].push(r as AnyRecord);
-                    });
-                    setRecordsByDay(byDay);
-
-                    // Build timeline items
-                    const combined: TimelineItem[] = list.map((r: any, idx: number) => {
-                      const createdAt = typeof r.createdAt === 'number' ? r.createdAt : Date.now();
-                      if (r.kind === 'image') {
-                        return { id: r.id ?? `img-${idx}-${createdAt}`, type: 'image', uri: r.imageUrl || undefined, text: r.llmText ?? r.userText ?? undefined, createdAt } as TimelineItem;
-                      } else if (r.kind === 'voice') {
-                        return { id: r.id ?? `voice-${idx}-${createdAt}`, type: 'voice', uri: r.audioUrl || undefined, text: r.llmText ?? undefined, createdAt, audioDurationSec: r.audioDurationSec ?? undefined } as TimelineItem;
-                      }
-                      return { id: r.id ?? `text-${idx}-${createdAt}`, type: 'text', text: r.userText ?? r.llmText ?? '', createdAt } as TimelineItem;
-                    });
-                    combined.sort((a, b) => a.createdAt - b.createdAt);
-                    setTimeline(combined);
-                  } catch {}
-                })();
-              }}
-            />
+            <LLMInputSection initialPrompt="Please enter a brief description of your symptoms, concerns, or updates." />
 
             {/* Full-screen overlay modal when expandedDayId is set */}
             {expandedDayId && groups[expandedDayId] && (
@@ -964,16 +1095,16 @@ const dashboardStyles = StyleSheet.create({
     marginBottom: 10,
   },
   highlightsContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-  highlightCard: { flex: 1, backgroundColor: '#F7F7F7', borderRadius: 10, padding: 12, marginHorizontal: 4, flexDirection: 'row', alignItems: 'center' },
+  highlightCard: { flex: 1, backgroundColor: '#F7F7F7', borderRadius: 10, padding: 6, marginHorizontal: 4, flexDirection: 'row', alignItems: 'center'},
   highlightIcon: { fontSize: 24, marginRight: 8 },
-  highlightTextWrapper: { flex: 1 },
+  highlightTextWrapper: { flex: 1},
   highlightName: { fontSize: 12, color: '#666', fontWeight: '500' },
   trendRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
   highlightValue: { fontSize: 16, fontWeight: '800', marginRight: 4 },
   basicsContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
-  basicStatCard: { flex: 1, backgroundColor: '#E6F0FF', borderRadius: 10, padding: 15, marginHorizontal: 4, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  basicStatCard: { flex: 1, backgroundColor: '#E6F0FF', borderRadius: 10, padding: 6, marginHorizontal: 4, flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center' },
   basicValue: { fontSize: 24, fontWeight: '900', color: '#0b84ff' },
-  basicLabel: { fontSize: 14, fontWeight: '600', color: '#333', maxWidth: '50%', textAlign: 'right' },
+  basicLabel: { fontSize: 14, fontWeight: '600', color: '#333', maxWidth: '50%', textAlign: 'right', marginLeft: 8 },
   graphContainer: { padding: 8, backgroundColor: '#F7F7F7', borderRadius: 10, alignItems: 'center', paddingVertical: 20, marginHorizontal: 4 },
   axisLabelY: { alignSelf: 'flex-start', marginLeft: 10, fontSize: 12, color: '#666', marginBottom: 5, transform: [{ translateY: -10 }] },
   chartArea: { width: '100%', height: 200, backgroundColor: '#ffffff', borderRadius: 8, borderWidth: 1, borderColor: '#E0E0E0', justifyContent: 'center', marginBottom: 5 },
