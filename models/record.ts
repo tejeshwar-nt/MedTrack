@@ -4,6 +4,14 @@
 
 export type RecordKind = 'text' | 'image' | 'voice';
 
+/** A single LLM-generated follow-up question with an optional user response */
+export type FollowUpQuestion = {
+  /** The LLM-generated follow-up question */
+  question: string;
+  /** Optional user response to the follow-up question */
+  userResponse?: string;
+};
+
 export type BaseRecord = {
   /** UID of the patient this record belongs to */
   patientUid: string;
@@ -13,6 +21,8 @@ export type BaseRecord = {
   createdAt: number;
   /** Optional Firestore document id if you choose to store it */
   id?: string;
+  /** LLM-generated follow-up questions and their optional user responses */
+  followUps?: FollowUpQuestion[];
 };
 
 export type TextRecord = BaseRecord & {
@@ -50,6 +60,7 @@ export function createTextRecord(init: {
   userText: string;
   createdAt?: number;
   id?: string;
+  followUps?: FollowUpQuestion[];
 }): TextRecord {
   return {
     patientUid: init.patientUid,
@@ -57,6 +68,7 @@ export function createTextRecord(init: {
     userText: init.userText.trim(),
     createdAt: init.createdAt ?? Date.now(),
     id: init.id,
+    followUps: init.followUps ?? [],
   };
 }
 
@@ -66,6 +78,7 @@ export function createImageRecord(init: {
   userText: string;
   createdAt?: number;
   id?: string;
+  followUps?: FollowUpQuestion[];
 }): ImageRecord {
   return {
     patientUid: init.patientUid,
@@ -74,6 +87,7 @@ export function createImageRecord(init: {
     userText: init.userText.trim(),
     createdAt: init.createdAt ?? Date.now(),
     id: init.id,
+    followUps: init.followUps ?? [],
   };
 }
 
@@ -83,6 +97,7 @@ export function createVoiceRecord(init: {
   createdAt?: number;
   audioDurationSec?: number;
   id?: string;
+  followUps?: FollowUpQuestion[];
 }): VoiceRecord {
   return {
     patientUid: init.patientUid,
@@ -91,6 +106,7 @@ export function createVoiceRecord(init: {
     audioDurationSec: init.audioDurationSec,
     createdAt: init.createdAt ?? Date.now(),
     id: init.id,
+    followUps: init.followUps ?? [],
   };
 }
 

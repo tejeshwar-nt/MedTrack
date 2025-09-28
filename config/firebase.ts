@@ -12,7 +12,7 @@ const firebaseConfig = {
   measurementId: "G-DZEK8P4CPL"
 };
 
-const app = initializeApp(firebaseConfig);
+export const app = initializeApp(firebaseConfig);
 
 // Firestore: prefer long polling to avoid restricted networks issues
 export const db = initializeFirestore(app, {
