@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, Image, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, Image, Platform } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
@@ -39,6 +39,7 @@ export default function LLMInputSection({ initialPrompt }: { initialPrompt: stri
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [progress, setProgress] = useState<{ position: number; duration: number }>({ position: 0, duration: 0 });
+  const [isPreparingRec, setIsPreparingRec] = useState(false);
   const [pendingFollowUps, setPendingFollowUps] = useState<{ recordId: string; questions: { index: number; text: string }[] } | null>(null);
   const followUpUnsubRef = useRef<null | (() => void)>(null);
   const hadFollowUpsRef = useRef(false);
@@ -73,6 +74,17 @@ export default function LLMInputSection({ initialPrompt }: { initialPrompt: stri
   useEffect(() => {
     return () => { sound?.unloadAsync().catch(() => {}); };
   }, [sound]);
+  useEffect(() => {
+    return () => {
+      (async () => {
+        try {
+          if (recording) {
+            try { await recording.stopAndUnloadAsync(); } catch {}
+          }
+        } catch {}
+      })();
+    };
+  }, []);
 
   async function togglePlayMessage(msg: Message) {
     try {
@@ -273,20 +285,28 @@ export default function LLMInputSection({ initialPrompt }: { initialPrompt: stri
       Alert.alert('Please finish follow-ups', 'Answer the follow-up question before recording audio.');
       return;
     }
+    if (isPreparingRec) return;
     try {
       if (!isRecording) {
+        setIsPreparingRec(true);
         const perm = await Audio.requestPermissionsAsync();
         if (!perm.granted) {
           Alert.alert('Permission required', 'Please allow microphone access.');
+          setIsPreparingRec(false);
           return;
         }
         await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+        if (recording) {
+          try { await recording.stopAndUnloadAsync(); } catch {}
+          setRecording(null);
+        }
         const rec = new Audio.Recording();
         await rec.prepareToRecordAsync({ ...(Audio.RecordingOptionsPresets.HIGH_QUALITY as any), isMeteringEnabled: true } as any);
         await rec.startAsync();
         setRecording(rec);
         setIsRecording(true);
         setMode('voice');
+        setIsPreparingRec(false);
       } else {
         if (!recording) return;
         await recording.stopAndUnloadAsync();
@@ -296,7 +316,6 @@ export default function LLMInputSection({ initialPrompt }: { initialPrompt: stri
         setIsRecording(false);
         setRecording(null);
         if (uri) {
-          // Prefer duration from recording status; if missing, probe via Audio.Sound
           let durationMs: number | null = (status && typeof status.durationMillis === 'number') ? status.durationMillis : null;
           if (!durationMs) {
             try {
@@ -310,11 +329,13 @@ export default function LLMInputSection({ initialPrompt }: { initialPrompt: stri
           setVoiceDurationMs(durationMs);
           if (!voiceLabel) setVoiceLabel('Voice note');
         }
+        try { await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true }); } catch {}
       }
     } catch (e) {
       console.warn('[voice] recording error', e);
       setIsRecording(false);
       setRecording(null);
+      setIsPreparingRec(false);
     }
   }
 
@@ -393,7 +414,7 @@ export default function LLMInputSection({ initialPrompt }: { initialPrompt: stri
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={80} style={{ flex: 1 }}>
+    <View style={{ flex: 1 }}>
       <View style={styles.wrapper}>
         <View style={styles.shadowLayer} />
         <View style={styles.card}>
@@ -491,7 +512,7 @@ export default function LLMInputSection({ initialPrompt }: { initialPrompt: stri
           </View>
         </View>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
