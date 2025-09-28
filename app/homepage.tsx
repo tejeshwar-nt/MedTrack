@@ -5,7 +5,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useHeaderHeight } from '@react-navigation/elements';
 import { useAuth } from '../hooks/useAuth';
 import LLMInputSection from '../components/LLMInputSection';
-import { fetchRecordsGroupedByDay } from '../services/records';
+import { fetchRecordsGroupedByDay, fetchRecordsForPatient } from '../services/records';
 import { getProfile } from '../services/profile';
 import { AnyRecord } from '../models/record';
 import { Audio } from 'expo-av';
@@ -511,7 +511,41 @@ export default function HomePage() {
 
             <Text style={styles.sectionTitle}>Share how you're feeling today</Text>
             {/* InputSection (Media Input UI) */}
-            <LLMInputSection initialPrompt="Please enter a brief description of your symptoms, concerns, or updates." />
+            <LLMInputSection
+              initialPrompt="Please enter a brief description of your symptoms, concerns, or updates."
+              onRecordSaved={() => {
+                // Re-fetch records to sync timeline for patients
+                (async () => {
+                  try {
+                    const pid = currentpatientId || user?.uid || null;
+                    if (!pid) return;
+                    const list = await fetchRecordsForPatient(pid, 'asc');
+                    // Update recordsByDay for completeness
+                    const byDay: Record<string, AnyRecord[]> = {};
+                    list.forEach((r: any) => {
+                      const createdAt = typeof r.createdAt === 'number' ? r.createdAt : Date.now();
+                      const dayKey = new Date(createdAt).toISOString().slice(0, 10);
+                      if (!byDay[dayKey]) byDay[dayKey] = [];
+                      byDay[dayKey].push(r as AnyRecord);
+                    });
+                    setRecordsByDay(byDay);
+
+                    // Build timeline items
+                    const combined: TimelineItem[] = list.map((r: any, idx: number) => {
+                      const createdAt = typeof r.createdAt === 'number' ? r.createdAt : Date.now();
+                      if (r.kind === 'image') {
+                        return { id: r.id ?? `img-${idx}-${createdAt}`, type: 'image', uri: r.imageUrl || undefined, text: r.llmText ?? r.userText ?? undefined, createdAt } as TimelineItem;
+                      } else if (r.kind === 'voice') {
+                        return { id: r.id ?? `voice-${idx}-${createdAt}`, type: 'voice', uri: r.audioUrl || undefined, text: r.llmText ?? undefined, createdAt, audioDurationSec: r.audioDurationSec ?? undefined } as TimelineItem;
+                      }
+                      return { id: r.id ?? `text-${idx}-${createdAt}`, type: 'text', text: r.userText ?? r.llmText ?? '', createdAt } as TimelineItem;
+                    });
+                    combined.sort((a, b) => a.createdAt - b.createdAt);
+                    setTimeline(combined);
+                  } catch {}
+                })();
+              }}
+            />
 
             {/* Full-screen overlay modal when expandedDayId is set */}
             {expandedDayId && groups[expandedDayId] && (
