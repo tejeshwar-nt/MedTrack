@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, UploadFile, Body
 from fastapi.responses import Response
 import uvicorn
 import shutil
@@ -167,7 +167,7 @@ async def _followup_question_generator(records: str) -> list[str]:
 	return followup_questions
 
 @app.post("/followup")
-async def followup_question_generator(records: str) -> list[str]:
+async def followup_question_generator(records: str = Body(...)) -> list[str]:
 	return await _followup_question_generator(records)
 
 @app.get("/test_followup")

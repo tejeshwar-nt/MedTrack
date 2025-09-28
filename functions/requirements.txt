@@ -8,3 +8,4 @@ openai-whisper==20250625
 matplotlib
 numpy
 pandas
+seaborn
