@@ -13,8 +13,6 @@ sample_query = example_queries.dermatological_example
 
 from openai import OpenAI
 
-# OPENAI_KEY = "YOUR_API_KEY"
-
 from tmp import api_key
 OPENAI_KEY = api_key.KEY
 
@@ -121,8 +119,7 @@ async def transcribe_audio(file: UploadFile = File(...)) -> str:
 
 # ------------------------------------------------------------------------
 
-@app.post("/followup")
-async def followup_question_generator(records: str) -> list[str]:
+async def _followup_question_generator(records: str) -> list[str]:
 	prompt_1 = prompts.prompt_template_1.format(record=records)
 
 	messages= [
@@ -140,8 +137,11 @@ async def followup_question_generator(records: str) -> list[str]:
 
 	return followup_questions
 
-@app.post("/sample_response")
-async def patient_sample_response(records: str, questions: str) -> dict:
+@app.post("/followup")
+async def followup_question_generator(records: str) -> list[str]:
+	return await _followup_question_generator(records)
+
+async def _patient_sample_response(records: str, questions: str) -> dict:
 	patient_prompt = prompts.example_patient_prompt.format(record = records, followup_questions = questions)
 
 	messages = [
@@ -159,8 +159,11 @@ async def patient_sample_response(records: str, questions: str) -> dict:
 
 	return followup_answers
 
-@app.post("/summarize")
-async def summarize_recods(records: str, followup_and_response: dict) -> dict:
+@app.post("/sample_response")
+async def patient_sample_response(records: str, questions: str) -> dict:
+	return await _patient_sample_response(records, questions)
+
+async def _summarize_recods(records: str, followup_and_response: dict) -> dict:
 	prompt_2 = prompts.prompt_template_2.format(record=records, followup_answers = followup_and_response)
 
 	messages = [
@@ -176,11 +179,15 @@ async def summarize_recods(records: str, followup_and_response: dict) -> dict:
 
 	return data2
 
+@app.post("/summarize")
+async def summarize_recods(records: str, followup_and_response: dict) -> dict:
+	return await _summarize_recods(records, followup_and_response)
+
 @app.get("/test_record_assistant")
 async def test_record_assistant():
-	followup_questions = await followup_question_generator(sample_query)
-	question_response = await patient_sample_response(sample_query, followup_questions)
-	return await summarize_recods(sample_query, question_response)
+	followup_questions = await _followup_question_generator(sample_query)
+	question_response = await _patient_sample_response(sample_query, followup_questions)
+	return await _summarize_recods(sample_query, question_response)
 
 # ------------------------------------------------------------------------
 

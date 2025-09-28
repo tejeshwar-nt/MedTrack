@@ -11,6 +11,7 @@ click==8.3.0
 cloudevents==1.11.0
 cryptography==46.0.1
 deprecation==2.1.0
+distro==1.9.0
 dnspython==2.8.0
 email-validator==2.3.0
 fastapi==0.117.1
@@ -45,6 +46,7 @@ hyperframe==6.1.0
 idna==3.10
 itsdangerous==2.2.0
 Jinja2==3.1.6
+jiter==0.11.0
 llvmlite==0.45.0
 markdown-it-py==4.0.0
 MarkupSafe==3.0.2
