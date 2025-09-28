@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { StyleSheet, Pressable, View as RNView, useWindowDimensions, Alert, ScrollView, View, Text } from 'react-native';
+import { StyleSheet, Pressable, View as RNView, useWindowDimensions, Alert, ScrollView, View, Text, KeyboardAvoidingView, Platform } from 'react-native';
 import { Link, useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../hooks/useAuth';
+import LLMInputSection from '../components/LLMInputSection';
 
 export default function HomePage() {
   const router = useRouter();
@@ -34,6 +35,7 @@ export default function HomePage() {
             }}
           />
           <SafeAreaView style={styles.safe}>
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={80} style={{ flex: 1 }}>
             <View style={styles.patientScreen}>
               <Text style={styles.welcomeTop}>
                 Welcome back, {profile?.displayName || user.displayName || 'User'}!
@@ -61,8 +63,9 @@ export default function HomePage() {
 
               {/* Bottom input section with segmented picker */}
               <Text style={styles.sectionTitle}>Share how you're feeling today</Text>
-              <InputSection />
+              <LLMInputSection initialPrompt="Please enter a brief description of your symptoms, concerns, or updates." />
             </View>
+            </KeyboardAvoidingView>
           </SafeAreaView>
         </>
       );
@@ -127,66 +130,7 @@ export default function HomePage() {
   );
 }
 
-function InputSection() {
-  const [tab, setTab] = useState<'text' | 'image' | 'voice'>('text');
-
-  return (
-    <View style={styles.inputSection}>
-      <View style={styles.segmentedContainer}>
-        <Pressable
-          onPress={() => setTab('text')}
-          style={({ pressed }) => [
-            styles.segment,
-            tab === 'text' && styles.segmentActive,
-            pressed && { opacity: 0.9 },
-          ]}
-        >
-          <Text style={[styles.segmentLabel, tab === 'text' && styles.segmentLabelActive]}>Text</Text>
-        </Pressable>
-        <View style={styles.segmentDivider} />
-        <Pressable
-          onPress={() => setTab('image')}
-          style={({ pressed }) => [
-            styles.segment,
-            tab === 'image' && styles.segmentActive,
-            pressed && { opacity: 0.9 },
-          ]}
-        >
-          <Text style={[styles.segmentLabel, tab === 'image' && styles.segmentLabelActive]}>Image</Text>
-        </Pressable>
-        <View style={styles.segmentDivider} />
-        <Pressable
-          onPress={() => setTab('voice')}
-          style={({ pressed }) => [
-            styles.segment,
-            tab === 'voice' && styles.segmentActive,
-            pressed && { opacity: 0.9 },
-          ]}
-        >
-          <Text style={[styles.segmentLabel, tab === 'voice' && styles.segmentLabelActive]}>Voice</Text>
-        </Pressable>
-      </View>
-
-      <View style={styles.instructionsCard}>
-        {tab === 'text' && (
-          <Text style={styles.instructionsText}>
-            Please enter a brief description of your symptoms, concerns, or updates.
-          </Text>
-        )}
-        {tab === 'image' && (
-          <Text style={styles.instructionsText}>
-            Upload clear photos relevant to your condition (e.g., a rash). Ensure good lighting.
-          </Text>
-        )}
-        {tab === 'voice' && (
-          <Text style={styles.instructionsText}>
-            Record a short voice note describing your symptoms, timing, and any triggers.
-          </Text>
-        )}
-      </View>
-    </View>
-  );
-}
+// legacy InputSection removed in favor of LLMInputSection
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F5F5F5' },
@@ -194,7 +138,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 0,
     paddingTop: 0,
-    paddingBottom: 32,
+    paddingBottom: 8,
   },
   welcomeTop: {
     fontSize: 24,
@@ -210,7 +154,7 @@ const styles = StyleSheet.create({
     color: '#111',
     textAlign: 'left',
     marginTop: 20,
-    marginBottom: 0,
+    marginBottom: 14,
     paddingHorizontal: 20,
   },
   topHalf: {
@@ -221,7 +165,7 @@ const styles = StyleSheet.create({
   },
   inputSection: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: 0,
     paddingTop: 12,
   },
   segmentedContainer: {
@@ -230,6 +174,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 6,
     alignItems: 'center',
+    marginHorizontal: 16,
   },
   segment: {
     paddingVertical: 10,
@@ -257,14 +202,40 @@ const styles = StyleSheet.create({
     marginHorizontal: 6,
   },
   instructionsCard: {
+    flex: 1,
     marginTop: 12,
+    marginHorizontal: 16,
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  instructionsWrapper: {
+    flex: 1,
+    marginTop: 0,
+  },
+  instructionsShadow: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    top: 12,
+    bottom: 0,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    // iOS shadow
     shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 10,
+    shadowOpacity: 0.14,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 14,
+    // Android elevation
+    elevation: 8,
+  },
+  instructionsScrollInner: {
+    flex: 1,
+  },
+  instructionsContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    minHeight: 260,
   },
   instructionsText: {
     color: '#111',
